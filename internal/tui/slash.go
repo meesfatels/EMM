@@ -12,6 +12,10 @@ import (
 
 func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 	parts := strings.Fields(input)
+	if len(parts) == 0 {
+		return m, nil
+	}
+
 	switch parts[0] {
 	case "/help":
 		agents := make([]string, 0, len(m.rt.Agents))
@@ -22,11 +26,20 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 		for name := range m.rt.Minions {
 			minions = append(minions, name)
 		}
-		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf(
-			"/agent <name>   — switch agent (resets session)\n/minion <name>  — switch minion (resets session)\n/save <name>    — save conversation to .EMM/conversations/<name>.md\n/destroy <name> — delete a saved conversation\n/help           — show this help\n\nagents:  %s\nminions: %s",
-			strings.Join(agents, ", "),
-			strings.Join(minions, ", "),
-		)})
+		m.messages = append(m.messages, message{
+			role: "system",
+			content: fmt.Sprintf(
+				"/agent <name>   — switch agent (resets session)\n"+
+					"/minion <name>  — switch minion (resets session)\n"+
+					"/save <name>    — save conversation to .EMM/conversations/<name>.md\n"+
+					"/load <name>    — load conversation from .EMM/conversations/<name>.md\n"+
+					"/destroy <name> — delete a saved conversation\n"+
+					"/help           — show this help\n\n"+
+					"agents:  %s\n"+
+					"minions: %s",
+				strings.Join(agents, ", "),
+				strings.Join(minions, ", ")),
+		})
 
 	case "/agent":
 		if len(parts) < 2 {
@@ -69,6 +82,26 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("saved as %q", name)})
+
+	case "/load":
+		if len(parts) < 2 {
+			m.messages = append(m.messages, message{role: "system", content: "usage: /load <name>"})
+			break
+		}
+		name := parts[1]
+		if err := m.session.Load(m.rt.Dir, name); err != nil {
+			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("error: %v", err)})
+			break
+		}
+		// Update TUI messages
+		m.messages = nil
+		for _, msg := range m.session.Messages() {
+			if msg.Role == "system" {
+				continue
+			}
+			m.messages = append(m.messages, message{role: msg.Role, content: msg.Content})
+		}
+		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("loaded %q", name)})
 
 	case "/destroy":
 		if len(parts) < 2 {

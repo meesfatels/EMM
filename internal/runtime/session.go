@@ -53,6 +53,66 @@ func (s *Session) Save(emmDir, name string) error {
 	return os.WriteFile(filepath.Join(convsDir, name+".md"), []byte(b.String()), 0o644)
 }
 
+func (s *Session) Load(emmDir, name string) error {
+	convPath := filepath.Join(emmDir, "conversations", name+".md")
+	data, err := os.ReadFile(convPath)
+	if err != nil {
+		return fmt.Errorf("reading conversation file: %w", err)
+	}
+
+	content := string(data)
+	lines := strings.Split(content, "\n")
+	
+	// Keep the system prompt
+	var newMessages []openrouter.Message
+	if len(s.messages) > 0 && s.messages[0].Role == "system" {
+		newMessages = append(newMessages, s.messages[0])
+	}
+
+	var currentRole string
+	var currentContent strings.Builder
+
+	for _, line := range lines {
+		if strings.HasPrefix(line, "## ") {
+			// Save previous message if it exists
+			if currentRole != "" {
+				newMessages = append(newMessages, openrouter.Message{
+					Role:    currentRole,
+					Content: strings.TrimSpace(currentContent.String()),
+				})
+				currentContent.Reset()
+			}
+
+			rolePart := strings.TrimPrefix(line, "## ")
+			if rolePart == s.username {
+				currentRole = "user"
+			} else {
+				currentRole = "assistant"
+			}
+			continue
+		}
+
+		if currentRole != "" {
+			currentContent.WriteString(line + "\n")
+		}
+	}
+
+	// Save last message
+	if currentRole != "" {
+		newMessages = append(newMessages, openrouter.Message{
+			Role:    currentRole,
+			Content: strings.TrimSpace(currentContent.String()),
+		})
+	}
+
+	s.messages = newMessages
+	return nil
+}
+
+func (s *Session) Messages() []openrouter.Message {
+	return s.messages
+}
+
 func (s *Session) Send(ctx context.Context, content string, onToken func(string)) (string, error) {
 	s.messages = append(s.messages, openrouter.Message{
 		Role:    "user",
