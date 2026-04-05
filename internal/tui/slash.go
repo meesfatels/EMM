@@ -40,7 +40,7 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.agentName = name
-		m.session = runtime.NewSession(agent, m.minionName, m.rt.Minions[m.minionName], m.rt.Client, m.rt.Config.Username())
+		m.session = runtime.NewSession(agent, m.minionName, m.rt.Minions[m.minionName], m.rt.Client, m.rt.Config.Username)
 		m.messages = []message{{role: "system", content: fmt.Sprintf("switched to agent %q", name)}}
 
 	case "/minion":
@@ -55,7 +55,7 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.minionName = name
-		m.session = runtime.NewSession(m.rt.Agents[m.agentName], name, minion, m.rt.Client, m.rt.Config.Username())
+		m.session = runtime.NewSession(m.rt.Agents[m.agentName], name, minion, m.rt.Client, m.rt.Config.Username)
 		m.messages = []message{{role: "system", content: fmt.Sprintf("switched to minion %q", name)}}
 
 	case "/save":

@@ -9,7 +9,7 @@ func (m chatModel) refreshContent() chatModel {
 	for _, msg := range m.messages {
 		switch msg.role {
 		case "user":
-			sb.WriteString(pad + st.user.Render(m.rt.Config.Username()) + "\n")
+			sb.WriteString(pad + st.user.Render(m.rt.Config.Username) + "\n")
 			sb.WriteString(prefixLines(wordWrap(msg.content, m.viewport.Width-4), pad))
 			sb.WriteString("\n\n")
 		case "assistant":
