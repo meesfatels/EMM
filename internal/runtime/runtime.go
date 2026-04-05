@@ -21,10 +21,7 @@ func New(emmDir string) (*Runtime, error) {
 	if err != nil {
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
-	apiKey, err := cfg.APIKey()
-	if err != nil {
-		return nil, err
-	}
+	apiKey := cfg.APIKey
 	minions, err := l.LoadMinions()
 	if err != nil {
 		return nil, fmt.Errorf("loading minions: %w", err)
@@ -38,6 +35,6 @@ func New(emmDir string) (*Runtime, error) {
 		Config:  cfg,
 		Minions: minions,
 		Agents:  agents,
-		Client:  openrouter.NewClient(apiKey, cfg.BaseURL()),
+		Client:  openrouter.NewClient(apiKey, cfg.BaseURL),
 	}, nil
 }
