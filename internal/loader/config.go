@@ -31,6 +31,18 @@ func (c Config) BaseURL() string {
 	return s
 }
 
+func (c Config) Username() string {
+	user, ok := c["username"]
+	if !ok {
+		return "user"
+	}
+	s, ok := user.(string)
+	if !ok || s == "" {
+		return "user"
+	}
+	return s
+}
+
 func (l *Loader) LoadConfig() (Config, error) {
 	var c Config
 	if err := readYAML(filepath.Join(l.baseDir, "emm.yaml"), &c); err != nil {
