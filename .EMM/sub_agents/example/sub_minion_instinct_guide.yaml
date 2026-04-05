@@ -1,0 +1,3 @@
+files:
+  - name: purpose.md
+    interpretation: "Defines the core purpose and scope of this sub-agent."

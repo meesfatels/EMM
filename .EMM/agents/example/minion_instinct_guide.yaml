@@ -1,0 +1,3 @@
+files:
+  - name: personality.md
+    interpretation: "Defines the core personality and tone of this agent."
