@@ -14,8 +14,8 @@ type Agent struct {
 func (l *Loader) LoadAgent(name string) (*Agent, error) {
 	dir := filepath.Join(l.baseDir, "agents", name)
 	instinct, err := LoadInstinct(
-		filepath.Join(dir, "minion_instinct_guide.yaml"),
-		filepath.Join(dir, "minion_instinct"),
+		filepath.Join(dir, "instinct.yaml"),
+		filepath.Join(dir, "instinct"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("agent %s: %w", name, err)

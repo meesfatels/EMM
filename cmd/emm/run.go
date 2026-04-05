@@ -44,7 +44,7 @@ func runAgent(agentName string, minionName string) error {
 	if !ok {
 		return fmt.Errorf("unknown minion %q", minionName)
 	}
-	session := runtime.NewSession(agent, minion, rt.Client)
+	session := runtime.NewSession(agent, minionName, minion, rt.Client, rt.Config.Username())
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	return tui.Run(ctx, cancel, rt, session, agentName, minionName)

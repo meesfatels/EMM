@@ -1,3 +1,4 @@
+# Minion configuration — model parameters sent to the API
 model: openrouter/auto
 temperature: 0.7
 max_tokens: 4096

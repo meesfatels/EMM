@@ -2,6 +2,8 @@ package tui
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,7 +23,7 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			minions = append(minions, name)
 		}
 		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf(
-			"/agent <name>  — switch agent (resets session)\n/minion <name> — switch minion (resets session)\n/help          — show this help\n\nagents:  %s\nminions: %s",
+			"/agent <name>   — switch agent (resets session)\n/minion <name>  — switch minion (resets session)\n/save <name>    — save conversation to .EMM/conversations/<name>.md\n/destroy <name> — delete a saved conversation\n/help           — show this help\n\nagents:  %s\nminions: %s",
 			strings.Join(agents, ", "),
 			strings.Join(minions, ", "),
 		)})
@@ -38,7 +40,7 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.agentName = name
-		m.session = runtime.NewSession(agent, m.rt.Minions[m.minionName], m.rt.Client)
+		m.session = runtime.NewSession(agent, m.minionName, m.rt.Minions[m.minionName], m.rt.Client, m.rt.Config.Username())
 		m.messages = []message{{role: "system", content: fmt.Sprintf("switched to agent %q", name)}}
 
 	case "/minion":
@@ -53,8 +55,37 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.minionName = name
-		m.session = runtime.NewSession(m.rt.Agents[m.agentName], minion, m.rt.Client)
+		m.session = runtime.NewSession(m.rt.Agents[m.agentName], name, minion, m.rt.Client, m.rt.Config.Username())
 		m.messages = []message{{role: "system", content: fmt.Sprintf("switched to minion %q", name)}}
+
+	case "/save":
+		if len(parts) < 2 {
+			m.messages = append(m.messages, message{role: "system", content: "usage: /save <name>"})
+			break
+		}
+		name := parts[1]
+		if err := m.session.Save(m.rt.Dir, name); err != nil {
+			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("error: %v", err)})
+			break
+		}
+		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("saved as %q", name)})
+
+	case "/destroy":
+		if len(parts) < 2 {
+			m.messages = append(m.messages, message{role: "system", content: "usage: /destroy <name>"})
+			break
+		}
+		name := parts[1]
+		path := filepath.Join(m.rt.Dir, "conversations", name+".md")
+		if err := os.Remove(path); err != nil {
+			if os.IsNotExist(err) {
+				m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("no conversation named %q", name)})
+			} else {
+				m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("error: %v", err)})
+			}
+			break
+		}
+		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("destroyed %q", name)})
 
 	default:
 		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("unknown command %q — try /help", parts[0])})

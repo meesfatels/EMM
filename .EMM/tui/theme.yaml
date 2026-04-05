@@ -1,0 +1,10 @@
+# EMM TUI theme
+# Colors accept hex (#RRGGBB) or ANSI color numbers ("0"–"255")
+
+colors:
+  accent: "#A78BFA"      # borders and highlights
+  user: "#C4B5FD"        # your message label
+  assistant: "#7C3AED"   # agent message label
+  system: "#9CA3AF"      # system / info text
+  header_bg: "#3B0764"   # header background
+  header_fg: "#EDE9FE"   # header text

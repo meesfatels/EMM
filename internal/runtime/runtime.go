@@ -8,6 +8,7 @@ import (
 )
 
 type Runtime struct {
+	Dir     string
 	Config  loader.Config
 	Minions map[string]loader.Minion
 	Agents  map[string]*loader.Agent
@@ -33,6 +34,7 @@ func New(emmDir string) (*Runtime, error) {
 		return nil, fmt.Errorf("loading agents: %w", err)
 	}
 	return &Runtime{
+		Dir:     emmDir,
 		Config:  cfg,
 		Minions: minions,
 		Agents:  agents,

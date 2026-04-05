@@ -1,66 +1,60 @@
 package loader_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/meesfatels/emm/internal/loader"
 )
 
-func TestConfig_APIKey(t *testing.T) {
-	t.Run("valid key", func(t *testing.T) {
-		c := loader.Config{"api_key": "sk-abc123"}
-		key, err := c.APIKey()
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if key != "sk-abc123" {
-			t.Errorf("expected sk-abc123, got %q", key)
-		}
-	})
+func TestLoadConfig_Valid(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "emm.yaml"), "api_key: sk-abc123\nusername: alice\n")
 
-	t.Run("missing key", func(t *testing.T) {
-		c := loader.Config{}
-		if _, err := c.APIKey(); err == nil {
-			t.Error("expected error for missing api_key")
-		}
-	})
-
-	t.Run("empty key", func(t *testing.T) {
-		c := loader.Config{"api_key": ""}
-		if _, err := c.APIKey(); err == nil {
-			t.Error("expected error for empty api_key")
-		}
-	})
-
-	t.Run("non-string key", func(t *testing.T) {
-		c := loader.Config{"api_key": 42}
-		if _, err := c.APIKey(); err == nil {
-			t.Error("expected error for non-string api_key")
-		}
-	})
+	c, err := loader.NewLoader(dir).LoadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if c.APIKey != "sk-abc123" {
+		t.Errorf("APIKey: got %q, want sk-abc123", c.APIKey)
+	}
+	if c.Username != "alice" {
+		t.Errorf("Username: got %q, want alice", c.Username)
+	}
+	if c.BaseURL != "https://openrouter.ai/api/v1/chat/completions" {
+		t.Errorf("BaseURL: got %q, want default", c.BaseURL)
+	}
 }
 
-func TestConfig_BaseURL(t *testing.T) {
-	const defaultURL = "https://openrouter.ai/api/v1/chat/completions"
+func TestLoadConfig_MissingAPIKey(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "emm.yaml"), "username: bob\n")
 
-	t.Run("default when missing", func(t *testing.T) {
-		c := loader.Config{}
-		if got := c.BaseURL(); got != defaultURL {
-			t.Errorf("expected default URL, got %q", got)
-		}
-	})
+	if _, err := loader.NewLoader(dir).LoadConfig(); err == nil {
+		t.Error("expected error for missing api_key")
+	}
+}
 
-	t.Run("default when empty", func(t *testing.T) {
-		c := loader.Config{"base_url": ""}
-		if got := c.BaseURL(); got != defaultURL {
-			t.Errorf("expected default URL for empty value, got %q", got)
-		}
-	})
+func TestLoadConfig_Defaults(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "emm.yaml"), "api_key: sk-x\n")
 
-	t.Run("custom URL", func(t *testing.T) {
-		c := loader.Config{"base_url": "https://custom.example.com/v1"}
-		if got := c.BaseURL(); got != "https://custom.example.com/v1" {
-			t.Errorf("expected custom URL, got %q", got)
-		}
-	})
+	c, err := loader.NewLoader(dir).LoadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if c.Username != "user" {
+		t.Errorf("Username: got %q, want user", c.Username)
+	}
+	if c.BaseURL != "https://openrouter.ai/api/v1/chat/completions" {
+		t.Errorf("BaseURL: got %q, want default", c.BaseURL)
+	}
+}
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("writing %s: %v", path, err)
+	}
 }

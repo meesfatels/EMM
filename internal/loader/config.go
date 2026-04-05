@@ -5,48 +5,27 @@ import (
 	"path/filepath"
 )
 
-type Config map[string]any
+const defaultBaseURL = "https://openrouter.ai/api/v1/chat/completions"
 
-func (c Config) APIKey() (string, error) {
-	key, ok := c["api_key"]
-	if !ok {
-		return "", fmt.Errorf("api_key not set in emm.yaml")
-	}
-	s, ok := key.(string)
-	if !ok || s == "" {
-		return "", fmt.Errorf("api_key is empty in emm.yaml")
-	}
-	return s, nil
-}
-
-func (c Config) BaseURL() string {
-	url, ok := c["base_url"]
-	if !ok {
-		return "https://openrouter.ai/api/v1/chat/completions"
-	}
-	s, ok := url.(string)
-	if !ok || s == "" {
-		return "https://openrouter.ai/api/v1/chat/completions"
-	}
-	return s
-}
-
-func (c Config) Username() string {
-	user, ok := c["username"]
-	if !ok {
-		return "user"
-	}
-	s, ok := user.(string)
-	if !ok || s == "" {
-		return "user"
-	}
-	return s
+type Config struct {
+	APIKey   string `yaml:"api_key"`
+	BaseURL  string `yaml:"base_url"`
+	Username string `yaml:"username"`
 }
 
 func (l *Loader) LoadConfig() (Config, error) {
 	var c Config
 	if err := readYAML(filepath.Join(l.baseDir, "emm.yaml"), &c); err != nil {
-		return nil, fmt.Errorf("loading config: %w", err)
+		return Config{}, fmt.Errorf("loading config: %w", err)
+	}
+	if c.APIKey == "" {
+		return Config{}, fmt.Errorf("api_key not set in emm.yaml")
+	}
+	if c.BaseURL == "" {
+		c.BaseURL = defaultBaseURL
+	}
+	if c.Username == "" {
+		c.Username = "user"
 	}
 	return c, nil
 }
