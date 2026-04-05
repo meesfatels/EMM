@@ -1,15 +1,18 @@
 package openrouter
+
 import (
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 )
+
 type Client struct {
 	apiKey     string
 	baseURL    string
 	httpClient *http.Client
 }
+
 func NewClient(apiKey, baseURL string) *Client {
 	return &Client{
 		apiKey:     apiKey,

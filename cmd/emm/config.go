@@ -1,12 +1,14 @@
 package main
+
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"github.com/meesfatels/emm/internal/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
-	"github.com/meesfatels/emm/internal/config"
+	"os"
+	"path/filepath"
 )
+
 func newConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",

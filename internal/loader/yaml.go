@@ -1,11 +1,13 @@
 package loader
+
 import (
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
-	"gopkg.in/yaml.v3"
 )
+
 func readYAML(path string, out any) error {
 	data, err := os.ReadFile(path)
 	if err != nil {

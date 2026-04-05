@@ -1,19 +1,23 @@
 package runtime
+
 import (
 	"context"
 	"fmt"
 	"io"
 	"strings"
+
 	"github.com/meesfatels/emm/internal/loader"
 	"github.com/meesfatels/emm/internal/openrouter"
 )
+
 type Session struct {
-	agent    *ResolvedAgent
+	agent    *loader.Agent
 	minion   loader.Minion
 	client   *openrouter.Client
 	messages []openrouter.Message
 }
-func NewSession(agent *ResolvedAgent, minion loader.Minion, client *openrouter.Client) *Session {
+
+func NewSession(agent *loader.Agent, minion loader.Minion, client *openrouter.Client) *Session {
 	prompt := BuildPrompt(agent.Instinct)
 	return &Session{
 		agent:  agent,
@@ -24,6 +28,7 @@ func NewSession(agent *ResolvedAgent, minion loader.Minion, client *openrouter.C
 		},
 	}
 }
+
 func (s *Session) Send(ctx context.Context, content string, onToken func(string)) (string, error) {
 	s.messages = append(s.messages, openrouter.Message{
 		Role:    "user",
@@ -43,6 +48,7 @@ func (s *Session) Send(ctx context.Context, content string, onToken func(string)
 			break
 		}
 		if err != nil {
+			s.messages = s.messages[:len(s.messages)-1]
 			return b.String(), fmt.Errorf("streaming response: %w", err)
 		}
 		b.WriteString(token)

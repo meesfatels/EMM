@@ -1,10 +1,12 @@
 package main
+
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"github.com/meesfatels/emm/internal/config"
 	"github.com/meesfatels/emm/internal/runtime"
+	"github.com/spf13/cobra"
 )
+
 func newValidateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "validate",

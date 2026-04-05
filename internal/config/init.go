@@ -7,14 +7,6 @@ import (
 	"path/filepath"
 )
 
-func Dir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("finding home directory: %w", err)
-	}
-	return filepath.Join(home, ".emm"), nil
-}
-
 func Init(templateFS fs.FS) error {
 	dir, err := Dir()
 	if err != nil {
@@ -30,10 +22,7 @@ func Init(templateFS fs.FS) error {
 		}
 		target := filepath.Join(dir, rel)
 		if d.IsDir() {
-			if err := os.MkdirAll(target, 0755); err != nil {
-				return fmt.Errorf("creating directory %s: %w", rel, err)
-			}
-			return nil
+			return os.MkdirAll(target, 0755)
 		}
 		if _, err := os.Stat(target); err == nil {
 			return nil
@@ -42,9 +31,6 @@ func Init(templateFS fs.FS) error {
 		if err != nil {
 			return fmt.Errorf("reading template %s: %w", rel, err)
 		}
-		if err := os.WriteFile(target, data, 0644); err != nil {
-			return fmt.Errorf("writing %s: %w", rel, err)
-		}
-		return nil
+		return os.WriteFile(target, data, 0644)
 	})
 }

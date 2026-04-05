@@ -36,16 +36,16 @@ func runAgent(agentName string, minionName string) error {
 	if err != nil {
 		return err
 	}
-	resolved, err := rt.Resolve(agentName)
-	if err != nil {
-		return err
+	agent, ok := rt.Agents[agentName]
+	if !ok {
+		return fmt.Errorf("unknown agent %q", agentName)
 	}
 	minion, ok := rt.Minions[minionName]
 	if !ok {
 		return fmt.Errorf("unknown minion %q", minionName)
 	}
-	session := runtime.NewSession(resolved, minion, rt.Client)
+	session := runtime.NewSession(agent, minion, rt.Client)
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	return tui.Run(ctx, cancel, session, agentName, minionName)
+	return tui.Run(ctx, cancel, rt, session, agentName, minionName)
 }

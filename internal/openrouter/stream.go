@@ -1,14 +1,17 @@
 package openrouter
+
 import (
 	"bufio"
 	"encoding/json"
 	"io"
 	"strings"
 )
+
 type Stream struct {
 	reader  io.ReadCloser
 	scanner *bufio.Scanner
 }
+
 func newStream(r io.ReadCloser) *Stream {
 	return &Stream{
 		reader:  r,

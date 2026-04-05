@@ -1,9 +1,11 @@
 package loader
+
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 )
+
 type InstinctFile struct {
 	Name           string `yaml:"name"`
 	Interpretation string `yaml:"interpretation"`
@@ -15,6 +17,7 @@ type Instinct struct {
 	Guide   InstinctGuide
 	Content map[string]string
 }
+
 func LoadInstinct(guideFile string, contentDir string) (*Instinct, error) {
 	var guide InstinctGuide
 	if err := readYAML(guideFile, &guide); err != nil {

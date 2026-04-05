@@ -1,9 +1,11 @@
 package openrouter
+
 import (
 	"bytes"
 	"encoding/json"
 	"io"
 )
+
 type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
@@ -12,6 +14,7 @@ type Request struct {
 	Minion   map[string]any
 	Messages []Message
 }
+
 func NewRequest(minion map[string]any, messages []Message) *Request {
 	return &Request{
 		Minion:   minion,

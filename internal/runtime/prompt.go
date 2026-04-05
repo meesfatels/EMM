@@ -1,8 +1,10 @@
 package runtime
+
 import (
-	"strings"
 	"github.com/meesfatels/emm/internal/loader"
+	"strings"
 )
+
 func BuildPrompt(instinct *loader.Instinct) string {
 	var b strings.Builder
 	for _, f := range instinct.Guide.Files {

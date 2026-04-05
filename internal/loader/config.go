@@ -1,8 +1,12 @@
 package loader
+
 import (
 	"fmt"
+	"path/filepath"
 )
+
 type Config map[string]any
+
 func (c Config) APIKey() (string, error) {
 	key, ok := c["api_key"]
 	if !ok {
@@ -14,6 +18,7 @@ func (c Config) APIKey() (string, error) {
 	}
 	return s, nil
 }
+
 func (c Config) BaseURL() string {
 	url, ok := c["base_url"]
 	if !ok {
@@ -24,4 +29,12 @@ func (c Config) BaseURL() string {
 		return "https://openrouter.ai/api/v1/chat/completions"
 	}
 	return s
+}
+
+func (l *Loader) LoadConfig() (Config, error) {
+	var c Config
+	if err := readYAML(filepath.Join(l.baseDir, "emm.yaml"), &c); err != nil {
+		return nil, fmt.Errorf("loading config: %w", err)
+	}
+	return c, nil
 }
