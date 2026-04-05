@@ -20,7 +20,6 @@ func main() {
 		newInitCmd(emm.TemplateFS),
 		newRunCmd(),
 		newListCmd(),
-		newConfigCmd(),
 		newValidateCmd(),
 	)
 	if err := rootCmd.Execute(); err != nil {
