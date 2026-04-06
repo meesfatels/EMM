@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/meesfatels/emm/internal/runtime"
+	"github.com/meesfatels/emm/internal/agent"
 )
 
 type message struct {
@@ -15,25 +15,25 @@ type message struct {
 }
 
 type chatModel struct {
-	viewport      viewport.Model
-	textarea      textarea.Model
-	messages      []message
-	session       *runtime.Session
-	rt            *runtime.Runtime
-	ctx           context.Context
-	cancel        context.CancelFunc
-	agentName     string
-	minionName    string
-	streaming     bool
-	tokenCh       chan string
-	width         int
-	ready         bool
-	historyCache  string
-	lastWidth     int
-	autoScroll    bool
+	viewport     viewport.Model
+	textarea     textarea.Model
+	messages     []message
+	session      *agent.Session
+	rt           *agent.Runtime
+	ctx          context.Context
+	cancel       context.CancelFunc
+	agentName    string
+	minionName   string
+	streaming    bool
+	eventCh      chan sessionEvent
+	width        int
+	ready        bool
+	historyCache string
+	lastWidth    int
+	autoScroll   bool
 }
 
-func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Runtime, session *runtime.Session, agentName, minionName string) chatModel {
+func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *agent.Runtime, session *agent.Session, agentName, minionName string) chatModel {
 	ta := textarea.New()
 	ta.Placeholder = cfg.Input.Placeholder
 	ta.Focus()

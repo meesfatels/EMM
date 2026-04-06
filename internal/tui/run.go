@@ -4,10 +4,10 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/meesfatels/emm/internal/runtime"
+	"github.com/meesfatels/emm/internal/agent"
 )
 
-func Run(ctx context.Context, cancel context.CancelFunc, rt *runtime.Runtime, session *runtime.Session, agentName, minionName string) error {
+func Run(ctx context.Context, cancel context.CancelFunc, rt *agent.Runtime, session *agent.Session, agentName, minionName string) error {
 	cfg = loadTheme(rt.Dir)
 	st = buildStyles(cfg)
 	p := tea.NewProgram(newChatModel(ctx, cancel, rt, session, agentName, minionName), tea.WithAltScreen())

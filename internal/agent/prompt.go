@@ -1,16 +1,14 @@
-package runtime
+package agent
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/meesfatels/emm/internal/loader"
 )
 
-func BuildPrompt(instinct *loader.Instinct) string {
+func BuildPrompt(a *Agent) string {
 	var b strings.Builder
-	for _, f := range instinct.Files {
-		content, ok := instinct.Content[f.Name]
+	for _, f := range a.Instinct {
+		content, ok := a.Content[f.Name]
 		if !ok {
 			continue
 		}
