@@ -48,20 +48,41 @@ func loadTheme(emmDir string) themeConfig {
 }
 
 type styles struct {
-	user      lipgloss.Style
-	assistant lipgloss.Style
-	system    lipgloss.Style
-	header    lipgloss.Style
-	border    lipgloss.Style
+	user         lipgloss.Style
+	assistant    lipgloss.Style
+	system       lipgloss.Style
+	header       lipgloss.Style
+	border       lipgloss.Style
+	msgUser      lipgloss.Style
+	msgAssistant lipgloss.Style
+	dim          lipgloss.Style
 }
 
 func buildStyles(t themeConfig) styles {
 	c := t.Colors
+	accent := lipgloss.Color(c.Accent)
+
 	return styles{
 		user:      lipgloss.NewStyle().Foreground(lipgloss.Color(c.User)).Bold(true),
 		assistant: lipgloss.NewStyle().Foreground(lipgloss.Color(c.Assistant)).Bold(true),
 		system:    lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)).Italic(true),
-		header:    lipgloss.NewStyle().Background(lipgloss.Color(c.HeaderBg)).Foreground(lipgloss.Color(c.HeaderFg)).Bold(true),
-		border:    lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color(c.Accent)),
+		header: lipgloss.NewStyle().
+			Background(lipgloss.Color(c.HeaderBg)).
+			Foreground(lipgloss.Color(c.HeaderFg)).
+			Bold(true).
+			Padding(0, 1),
+		border: lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(accent).
+			Padding(0, 1),
+		msgUser: lipgloss.NewStyle().
+			PaddingLeft(2).
+			Border(lipgloss.NormalBorder(), false, false, false, true).
+			BorderLeftForeground(lipgloss.Color(c.User)),
+		msgAssistant: lipgloss.NewStyle().
+			PaddingLeft(2).
+			Border(lipgloss.NormalBorder(), false, false, false, true).
+			BorderLeftForeground(lipgloss.Color(c.Assistant)),
+		dim: lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)),
 	}
 }

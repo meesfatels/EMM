@@ -1,14 +1,36 @@
 package tui
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 func (m chatModel) View() string {
 	if !m.ready {
-		return "\n  Loading..."
+		return "\n  Initializing..."
 	}
-	header := st.header.Width(m.width).Render(
-		fmt.Sprintf("  emm  ·  %s  ·  %s", m.agentName, m.minionName),
+
+	// 1. Header
+	header := st.header.Copy().Width(m.width).Render(
+		fmt.Sprintf(" emm · %s · %s", m.agentName, m.minionName),
 	)
-	input := st.border.Width(m.width - 2).Render(m.textarea.View())
-	return header + "\n" + m.viewport.View() + "\n" + input
+
+	// 2. Viewport
+	content := m.viewport.View()
+
+	// 3. Input
+	inputBorder := st.border.Copy().Width(m.width - 2)
+	if m.streaming {
+		inputBorder = inputBorder.BorderForeground(lipgloss.Color("240"))
+	}
+	input := inputBorder.Render(m.textarea.View())
+
+	// Assemble
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		header,
+		content,
+		input,
+	)
 }

@@ -55,6 +55,7 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 		m.agentName = name
 		m.session = runtime.NewSession(agent, m.minionName, m.rt.Minions[m.minionName], m.rt.Client, m.rt.Config.Username)
 		m.messages = []message{{role: "system", content: fmt.Sprintf("switched to agent %q", name)}}
+		m.historyCache = "" // Clear cache on switch
 
 	case "/minion":
 		if len(parts) < 2 {
@@ -70,6 +71,7 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 		m.minionName = name
 		m.session = runtime.NewSession(m.rt.Agents[m.agentName], name, minion, m.rt.Client, m.rt.Config.Username)
 		m.messages = []message{{role: "system", content: fmt.Sprintf("switched to minion %q", name)}}
+		m.historyCache = "" // Clear cache on switch
 
 	case "/save":
 		if len(parts) < 2 {
@@ -82,6 +84,7 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("saved as %q", name)})
+		// We don't clear cache on save
 
 	case "/load":
 		if len(parts) < 2 {
@@ -95,12 +98,14 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 		}
 		// Update TUI messages
 		m.messages = nil
+		m.historyCache = "" // Reset cache for new conversation
 		for _, msg := range m.session.Messages() {
 			if msg.Role == "system" {
 				continue
 			}
 			m.messages = append(m.messages, message{role: msg.Role, content: msg.Content})
 		}
+		// Rebuild history cache for all loaded messages except the (potential) system announcement
 		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("loaded %q", name)})
 
 	case "/destroy":

@@ -8,9 +8,11 @@ import (
 const defaultBaseURL = "https://openrouter.ai/api/v1/chat/completions"
 
 type Config struct {
-	APIKey   string `yaml:"api_key"`
-	BaseURL  string `yaml:"base_url"`
-	Username string `yaml:"username"`
+	APIKey        string `yaml:"api_key"`
+	BaseURL       string `yaml:"base_url"`
+	Username      string `yaml:"username"`
+	DefaultAgent  string `yaml:"default_agent"`
+	DefaultMinion string `yaml:"default_minion"`
 }
 
 func (l *Loader) LoadConfig() (Config, error) {
@@ -26,6 +28,12 @@ func (l *Loader) LoadConfig() (Config, error) {
 	}
 	if c.Username == "" {
 		c.Username = "user"
+	}
+	if c.DefaultAgent == "" {
+		c.DefaultAgent = "example"
+	}
+	if c.DefaultMinion == "" {
+		c.DefaultMinion = "example"
 	}
 	return c, nil
 }

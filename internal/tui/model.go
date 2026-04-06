@@ -14,19 +14,21 @@ type message struct {
 }
 
 type chatModel struct {
-	viewport   viewport.Model
-	textarea   textarea.Model
-	messages   []message
-	session    *runtime.Session
-	rt         *runtime.Runtime
-	ctx        context.Context
-	cancel     context.CancelFunc
-	agentName  string
-	minionName string
-	streaming  bool
-	tokenCh    chan string
-	width      int
-	ready      bool
+	viewport      viewport.Model
+	textarea      textarea.Model
+	messages      []message
+	session       *runtime.Session
+	rt            *runtime.Runtime
+	ctx           context.Context
+	cancel        context.CancelFunc
+	agentName     string
+	minionName    string
+	streaming     bool
+	tokenCh       chan string
+	width         int
+	ready         bool
+	historyCache  string // Rendered previous messages
+	lastWidth     int    // Track width for cache invalidation
 }
 
 func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Runtime, session *runtime.Session, agentName, minionName string) chatModel {
