@@ -60,8 +60,7 @@ func (s *Session) Load(emmDir, name string) error {
 		return fmt.Errorf("reading conversation file: %w", err)
 	}
 
-	content := string(data)
-	lines := strings.Split(content, "\n")
+	lines := strings.Split(string(data), "\n")
 	
 	// Keep the system prompt
 	var newMessages []openrouter.Message
@@ -107,6 +106,15 @@ func (s *Session) Load(emmDir, name string) error {
 
 	s.messages = newMessages
 	return nil
+}
+
+func (s *Session) SwitchAgent(agent *loader.Agent) {
+	s.agent = agent
+}
+
+func (s *Session) SwitchMinion(minion loader.Minion, name string) {
+	s.minion = minion
+	s.minionName = name
 }
 
 func (s *Session) Messages() []openrouter.Message {

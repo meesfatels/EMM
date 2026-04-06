@@ -20,6 +20,7 @@ func NewClient(apiKey, baseURL string) *Client {
 		httpClient: &http.Client{},
 	}
 }
+
 func (c *Client) Complete(ctx context.Context, req *Request) (*Stream, error) {
 	body, err := req.encode()
 	if err != nil {

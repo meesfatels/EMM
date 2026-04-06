@@ -27,11 +27,10 @@ type chatModel struct {
 	streaming     bool
 	tokenCh       chan string
 	width         int
-	height        int
 	ready         bool
 	historyCache  string
 	lastWidth     int
-	autoScroll    bool // Whether to snap to bottom
+	autoScroll    bool
 }
 
 func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Runtime, session *runtime.Session, agentName, minionName string) chatModel {
@@ -42,13 +41,19 @@ func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Ru
 	ta.ShowLineNumbers = false
 	ta.SetHeight(cfg.Layout.InputHeight)
 	ta.KeyMap.InsertNewline.SetEnabled(false)
-	// Remove the textarea's built-in border — layout provides a separator instead.
-	noBase := lipgloss.NewStyle()
-	ta.FocusedStyle.Base = noBase
-	ta.BlurredStyle.Base = noBase
+	plain := lipgloss.NewStyle()
+	ta.FocusedStyle.Base = plain
+	ta.BlurredStyle.Base = plain
+	ta.FocusedStyle.CursorLine = plain
+	ta.BlurredStyle.CursorLine = plain
+	ta.FocusedStyle.Text = plain
+	ta.BlurredStyle.Text = plain
+	ta.FocusedStyle.Prompt = plain
+	ta.BlurredStyle.Prompt = plain
+	ta.SetPromptFunc(0, func(int) string { return "" })
 
 	vp := viewport.New(0, 0)
-	vp.KeyMap.Up.SetEnabled(false)   // We'll handle these manually for better control
+	vp.KeyMap.Up.SetEnabled(false)
 	vp.KeyMap.Down.SetEnabled(false)
 
 	return chatModel{

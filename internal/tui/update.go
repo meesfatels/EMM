@@ -89,10 +89,9 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
-		m.height = msg.Height
 		m.ready = true
 
-		fixed := cfg.Layout.InputHeight + 1 // input + separator
+		fixed := cfg.Layout.InputHeight + 4 + 1 // box (height + 2 border + 2 padding) + meta label
 		if cfg.Layout.ShowHeader {
 			fixed++
 		}

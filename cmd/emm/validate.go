@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/meesfatels/emm/internal/config"
 	"github.com/meesfatels/emm/internal/runtime"
 	"github.com/spf13/cobra"

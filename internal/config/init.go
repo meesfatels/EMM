@@ -22,7 +22,7 @@ func Init(templateFS fs.FS) error {
 		}
 		target := filepath.Join(dir, rel)
 		if d.IsDir() {
-			return os.MkdirAll(target, 0755)
+			return os.MkdirAll(target, 0o755)
 		}
 		if _, err := os.Stat(target); err == nil {
 			return nil
@@ -31,6 +31,6 @@ func Init(templateFS fs.FS) error {
 		if err != nil {
 			return fmt.Errorf("reading template %s: %w", rel, err)
 		}
-		return os.WriteFile(target, data, 0644)
+		return os.WriteFile(target, data, 0o644)
 	})
 }

@@ -4,18 +4,22 @@ import (
 	"strings"
 )
 
+func (m chatModel) contentWidth() int {
+	w := m.width - 4
+	if w < 20 {
+		return 20
+	}
+	return w
+}
+
 // refreshContent updates the viewport's content and scrolls to the bottom.
-// It caches all but the last message to keep performance stable even
-// in huge conversations during streaming.
+// All but the last message are cached to keep streaming fast in long conversations.
 func (m chatModel) refreshContent() chatModel {
 	if m.width <= 0 {
 		return m
 	}
 
-	width := m.width - 4
-	if width < 20 {
-		width = 20
-	}
+	width := m.contentWidth()
 
 	// If the window resized, clear the cache so everything is re-wrapped.
 	if m.width != m.lastWidth {
@@ -33,13 +37,11 @@ func (m chatModel) refreshContent() chatModel {
 		m.historyCache = sb.String()
 	}
 
-	// The current content is the history cache + the last message.
 	var sb strings.Builder
 	sb.WriteString(m.historyCache)
 	if len(m.messages) > 0 {
 		sb.WriteString(renderMessage(m.messages[len(m.messages)-1], m.agentName, m.rt.Config.Username, width))
 	}
-	// Add a little extra space at the bottom for breathing room
 	sb.WriteString("\n")
 
 	m.viewport.SetContent(sb.String())
@@ -51,12 +53,8 @@ func (m chatModel) refreshContent() chatModel {
 
 // finalizeLastMessage moves the last message into the history cache.
 func (m chatModel) finalizeLastMessage() chatModel {
-	width := m.width - 4
-	if width < 20 {
-		width = 20
-	}
 	if len(m.messages) > 0 {
-		m.historyCache += renderMessage(m.messages[len(m.messages)-1], m.agentName, m.rt.Config.Username, width)
+		m.historyCache += renderMessage(m.messages[len(m.messages)-1], m.agentName, m.rt.Config.Username, m.contentWidth())
 		m.historyCache += "\n"
 	}
 	return m
@@ -65,13 +63,9 @@ func (m chatModel) finalizeLastMessage() chatModel {
 func renderMessage(msg message, agentName, userName string, width int) string {
 	switch msg.role {
 	case "user":
-		name := st.user.Render(userName)
-		content := st.msgUser.Width(width).Render(msg.content)
-		return name + "\n" + content + "\n"
+		return st.user.Render(userName) + "\n" + st.msg.Width(width).Render(msg.content) + "\n"
 	case "assistant":
-		name := st.assistant.Render(agentName)
-		content := st.msgAssistant.Width(width).Render(msg.content)
-		return name + "\n" + content + "\n"
+		return st.assistant.Render(agentName) + "\n" + st.msg.Width(width).Render(msg.content) + "\n"
 	case "system":
 		return st.system.Width(width).Render(msg.content) + "\n"
 	default:

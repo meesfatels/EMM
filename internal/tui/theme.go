@@ -40,16 +40,16 @@ type themeConfig struct {
 func defaultTheme() themeConfig {
 	return themeConfig{
 		Colors: themeColors{
-			Accent:    "#475569",
-			User:      "#E2E8F0",
-			Assistant: "#94A3B8",
-			System:    "#475569",
+			Accent:    "#7C3AED",
+			User:      "#EDE9FE",
+			Assistant: "#A78BFA",
+			System:    "#6D28D9",
 			HeaderBg:  "",
-			HeaderFg:  "#64748B",
+			HeaderFg:  "#8B5CF6",
 		},
 		Layout: layoutConfig{
 			InputHeight: 3,
-			ShowHeader:  true,
+			ShowHeader:  false,
 			ShowStatus:  true,
 		},
 		Input: inputConfig{
@@ -69,13 +69,13 @@ func loadTheme(emmDir string) themeConfig {
 }
 
 type styles struct {
-	user         lipgloss.Style
-	assistant    lipgloss.Style
-	system       lipgloss.Style
-	header       lipgloss.Style
-	msgUser      lipgloss.Style
-	msgAssistant lipgloss.Style
-	dim          lipgloss.Style
+	user      lipgloss.Style
+	assistant lipgloss.Style
+	system    lipgloss.Style
+	header    lipgloss.Style
+	border    lipgloss.Style
+	msg       lipgloss.Style
+	dim       lipgloss.Style
 }
 
 func buildStyles(t themeConfig) styles {
@@ -89,12 +89,15 @@ func buildStyles(t themeConfig) styles {
 	}
 
 	return styles{
-		user:         lipgloss.NewStyle().Foreground(lipgloss.Color(c.User)).Bold(true),
-		assistant:    lipgloss.NewStyle().Foreground(lipgloss.Color(c.Assistant)),
-		system:       lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)),
-		header:       header,
-		msgUser:      lipgloss.NewStyle().PaddingLeft(2),
-		msgAssistant: lipgloss.NewStyle().PaddingLeft(2),
-		dim:          lipgloss.NewStyle().Foreground(lipgloss.Color(c.Accent)),
+		user:      lipgloss.NewStyle().Foreground(lipgloss.Color(c.User)).Bold(true),
+		assistant: lipgloss.NewStyle().Foreground(lipgloss.Color(c.Assistant)),
+		system:    lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)),
+		header:    header,
+		border: lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color(c.Accent)).
+			Padding(1, 2),
+		msg: lipgloss.NewStyle().PaddingLeft(2),
+		dim:          lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)),
 	}
 }

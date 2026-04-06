@@ -10,10 +10,8 @@ import (
 
 func TestBuildPrompt_SingleFile(t *testing.T) {
 	instinct := &loader.Instinct{
-		Guide: loader.InstinctGuide{
-			Files: []loader.InstinctFile{
-				{Name: "personality.md", Interpretation: "Core personality"},
-			},
+		Files: []loader.InstinctFile{
+			{Name: "personality.md", Interpretation: "Core personality"},
 		},
 		Content: map[string]string{
 			"personality.md": "You are a helpful assistant.",
@@ -30,11 +28,9 @@ func TestBuildPrompt_SingleFile(t *testing.T) {
 
 func TestBuildPrompt_MultipleFiles(t *testing.T) {
 	instinct := &loader.Instinct{
-		Guide: loader.InstinctGuide{
-			Files: []loader.InstinctFile{
-				{Name: "a.md", Interpretation: "First"},
-				{Name: "b.md", Interpretation: "Second"},
-			},
+		Files: []loader.InstinctFile{
+			{Name: "a.md", Interpretation: "First"},
+			{Name: "b.md", Interpretation: "Second"},
 		},
 		Content: map[string]string{
 			"a.md": "Content A",
@@ -52,11 +48,9 @@ func TestBuildPrompt_MultipleFiles(t *testing.T) {
 
 func TestBuildPrompt_MissingFile(t *testing.T) {
 	instinct := &loader.Instinct{
-		Guide: loader.InstinctGuide{
-			Files: []loader.InstinctFile{
-				{Name: "missing.md", Interpretation: "Won't be found"},
-				{Name: "present.md", Interpretation: "Present"},
-			},
+		Files: []loader.InstinctFile{
+			{Name: "missing.md", Interpretation: "Won't be found"},
+			{Name: "present.md", Interpretation: "Present"},
 		},
 		Content: map[string]string{
 			"present.md": "I am here",
@@ -72,11 +66,7 @@ func TestBuildPrompt_MissingFile(t *testing.T) {
 }
 
 func TestBuildPrompt_Empty(t *testing.T) {
-	instinct := &loader.Instinct{
-		Guide:   loader.InstinctGuide{},
-		Content: map[string]string{},
-	}
-	got := runtime.BuildPrompt(instinct)
+	got := runtime.BuildPrompt(&loader.Instinct{})
 	if got != "" {
 		t.Errorf("expected empty prompt, got: %q", got)
 	}
