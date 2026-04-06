@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/meesfatels/emm/internal/runtime"
 )
 
@@ -35,12 +36,16 @@ type chatModel struct {
 
 func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Runtime, session *runtime.Session, agentName, minionName string) chatModel {
 	ta := textarea.New()
-	ta.Placeholder = "Type a message or /help..."
+	ta.Placeholder = cfg.Input.Placeholder
 	ta.Focus()
 	ta.CharLimit = 0
 	ta.ShowLineNumbers = false
-	ta.SetHeight(3)
+	ta.SetHeight(cfg.Layout.InputHeight)
 	ta.KeyMap.InsertNewline.SetEnabled(false)
+	// Remove the textarea's built-in border — layout provides a separator instead.
+	noBase := lipgloss.NewStyle()
+	ta.FocusedStyle.Base = noBase
+	ta.BlurredStyle.Base = noBase
 
 	vp := viewport.New(0, 0)
 	vp.KeyMap.Up.SetEnabled(false)   // We'll handle these manually for better control

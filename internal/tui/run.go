@@ -8,7 +8,8 @@ import (
 )
 
 func Run(ctx context.Context, cancel context.CancelFunc, rt *runtime.Runtime, session *runtime.Session, agentName, minionName string) error {
-	st = buildStyles(loadTheme(rt.Dir))
+	cfg = loadTheme(rt.Dir)
+	st = buildStyles(cfg)
 	p := tea.NewProgram(newChatModel(ctx, cancel, rt, session, agentName, minionName), tea.WithAltScreen())
 	_, err := p.Run()
 	return err

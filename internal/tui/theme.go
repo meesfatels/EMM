@@ -8,8 +8,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// st is set once in Run() before the program starts.
+// st and cfg are set once in Run() before the program starts.
 var st styles
+var cfg themeConfig
 
 type themeColors struct {
 	Accent    string `yaml:"accent"`
@@ -20,19 +21,39 @@ type themeColors struct {
 	HeaderFg  string `yaml:"header_fg"`
 }
 
+type layoutConfig struct {
+	InputHeight int  `yaml:"input_height"` // textarea height in lines
+	ShowHeader  bool `yaml:"show_header"`  // show the top header bar
+	ShowStatus  bool `yaml:"show_status"`  // show the scroll % / pause indicator
+}
+
+type inputConfig struct {
+	Placeholder string `yaml:"placeholder"`
+}
+
 type themeConfig struct {
 	Colors themeColors `yaml:"colors"`
+	Layout layoutConfig `yaml:"layout"`
+	Input  inputConfig  `yaml:"input"`
 }
 
 func defaultTheme() themeConfig {
 	return themeConfig{
 		Colors: themeColors{
-			Accent:    "#A78BFA",
-			User:      "#C4B5FD",
-			Assistant: "#7C3AED",
-			System:    "#9CA3AF",
-			HeaderBg:  "#3B0764",
-			HeaderFg:  "#EDE9FE",
+			Accent:    "#475569",
+			User:      "#E2E8F0",
+			Assistant: "#94A3B8",
+			System:    "#475569",
+			HeaderBg:  "",
+			HeaderFg:  "#64748B",
+		},
+		Layout: layoutConfig{
+			InputHeight: 3,
+			ShowHeader:  true,
+			ShowStatus:  true,
+		},
+		Input: inputConfig{
+			Placeholder: "message  (/help)",
 		},
 	}
 }
@@ -52,7 +73,6 @@ type styles struct {
 	assistant    lipgloss.Style
 	system       lipgloss.Style
 	header       lipgloss.Style
-	border       lipgloss.Style
 	msgUser      lipgloss.Style
 	msgAssistant lipgloss.Style
 	dim          lipgloss.Style
@@ -60,29 +80,21 @@ type styles struct {
 
 func buildStyles(t themeConfig) styles {
 	c := t.Colors
-	accent := lipgloss.Color(c.Accent)
+
+	header := lipgloss.NewStyle().
+		Foreground(lipgloss.Color(c.HeaderFg)).
+		Padding(0, 1)
+	if c.HeaderBg != "" {
+		header = header.Background(lipgloss.Color(c.HeaderBg))
+	}
 
 	return styles{
-		user:      lipgloss.NewStyle().Foreground(lipgloss.Color(c.User)).Bold(true),
-		assistant: lipgloss.NewStyle().Foreground(lipgloss.Color(c.Assistant)).Bold(true),
-		system:    lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)).Italic(true),
-		header: lipgloss.NewStyle().
-			Background(lipgloss.Color(c.HeaderBg)).
-			Foreground(lipgloss.Color(c.HeaderFg)).
-			Bold(true).
-			Padding(0, 1),
-		border: lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(accent).
-			Padding(0, 1),
-		msgUser: lipgloss.NewStyle().
-			PaddingLeft(2).
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderLeftForeground(lipgloss.Color(c.User)),
-		msgAssistant: lipgloss.NewStyle().
-			PaddingLeft(2).
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderLeftForeground(lipgloss.Color(c.Assistant)),
-		dim: lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)),
+		user:         lipgloss.NewStyle().Foreground(lipgloss.Color(c.User)).Bold(true),
+		assistant:    lipgloss.NewStyle().Foreground(lipgloss.Color(c.Assistant)),
+		system:       lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)),
+		header:       header,
+		msgUser:      lipgloss.NewStyle().PaddingLeft(2),
+		msgAssistant: lipgloss.NewStyle().PaddingLeft(2),
+		dim:          lipgloss.NewStyle().Foreground(lipgloss.Color(c.Accent)),
 	}
 }
