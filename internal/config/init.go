@@ -31,6 +31,10 @@ func Init(templateFS fs.FS) error {
 		if err != nil {
 			return fmt.Errorf("reading template %s: %w", rel, err)
 		}
-		return os.WriteFile(target, data, 0644)
+		mode := os.FileMode(0644)
+		if rel == "emm.yaml" {
+			mode = 0600
+		}
+		return os.WriteFile(target, data, mode)
 	})
 }

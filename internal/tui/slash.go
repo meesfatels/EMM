@@ -113,7 +113,11 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			m.messages = append(m.messages, message{role: "system", content: "usage: /destroy <name>"})
 			break
 		}
-		name := parts[1]
+		name, err := runtime.NormalizeConversationName(parts[1])
+		if err != nil {
+			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("error: %v", err)})
+			break
+		}
 		path := filepath.Join(m.rt.Dir, "conversations", name+".md")
 		if err := os.Remove(path); err != nil {
 			if os.IsNotExist(err) {
