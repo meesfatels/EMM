@@ -18,6 +18,7 @@ func newStream(r io.ReadCloser) *Stream {
 		scanner: bufio.NewScanner(r),
 	}
 }
+
 func (s *Stream) Recv() (string, error) {
 	for s.scanner.Scan() {
 		line := s.scanner.Text()
@@ -47,6 +48,7 @@ func (s *Stream) Recv() (string, error) {
 	}
 	return "", io.EOF
 }
+
 func (s *Stream) Close() error {
 	return s.reader.Close()
 }

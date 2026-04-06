@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/meesfatels/emm/internal/runtime"
 )
 
 func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
@@ -53,9 +52,9 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.agentName = name
-		m.session = runtime.NewSession(agent, m.minionName, m.rt.Minions[m.minionName], m.rt.Client, m.rt.Config.Username)
-		m.messages = []message{{role: "system", content: fmt.Sprintf("switched to agent %q", name)}}
-		m.historyCache = "" // Clear cache on switch
+		m.session.SwitchAgent(agent)
+		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("switched to agent %q", name)})
+		m.historyCache = ""
 
 	case "/minion":
 		if len(parts) < 2 {
@@ -69,9 +68,9 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.minionName = name
-		m.session = runtime.NewSession(m.rt.Agents[m.agentName], name, minion, m.rt.Client, m.rt.Config.Username)
-		m.messages = []message{{role: "system", content: fmt.Sprintf("switched to minion %q", name)}}
-		m.historyCache = "" // Clear cache on switch
+		m.session.SwitchMinion(minion, name)
+		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("switched to minion %q", name)})
+		m.historyCache = ""
 
 	case "/save":
 		if len(parts) < 2 {

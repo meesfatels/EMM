@@ -10,27 +10,24 @@ type InstinctFile struct {
 	Name           string `yaml:"name"`
 	Interpretation string `yaml:"interpretation"`
 }
-type InstinctGuide struct {
-	Files []InstinctFile `yaml:"files"`
-}
+
 type Instinct struct {
-	Guide   InstinctGuide
-	Content map[string]string
+	Files   []InstinctFile    `yaml:"files"`
+	Content map[string]string `yaml:"-"`
 }
 
-func LoadInstinct(guideFile string, contentDir string) (*Instinct, error) {
-	var guide InstinctGuide
-	if err := readYAML(guideFile, &guide); err != nil {
+func LoadInstinct(guideFile, contentDir string) (*Instinct, error) {
+	instinct := &Instinct{}
+	if err := readYAML(guideFile, instinct); err != nil {
 		return nil, fmt.Errorf("loading instinct guide: %w", err)
 	}
-	content := make(map[string]string, len(guide.Files))
-	for _, f := range guide.Files {
-		path := filepath.Join(contentDir, f.Name)
-		data, err := os.ReadFile(path)
+	instinct.Content = make(map[string]string, len(instinct.Files))
+	for _, f := range instinct.Files {
+		data, err := os.ReadFile(filepath.Join(contentDir, f.Name))
 		if err != nil {
 			return nil, fmt.Errorf("loading instinct file %s: %w", f.Name, err)
 		}
-		content[f.Name] = string(data)
+		instinct.Content[f.Name] = string(data)
 	}
-	return &Instinct{Guide: guide, Content: content}, nil
+	return instinct, nil
 }

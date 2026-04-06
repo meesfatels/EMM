@@ -2,16 +2,16 @@
 # Colors accept hex (#RRGGBB) or ANSI color numbers ("0"–"255")
 
 colors:
-  accent: "#475569"      # separator and dim elements
-  user: "#E2E8F0"        # your message label
-  assistant: "#94A3B8"   # agent message text
-  system: "#475569"      # system / info text
+  accent: "#7C3AED"      # border and highlights
+  user: "#EDE9FE"        # your message label
+  assistant: "#A78BFA"   # agent message text
+  system: "#6D28D9"      # system / info / dim text
   header_bg: ""          # header background (empty = terminal default)
-  header_fg: "#64748B"   # header text
+  header_fg: "#8B5CF6"   # header text
 
 layout:
   input_height: 3        # textarea height in lines
-  show_header: true      # show the top header bar
+  show_header: false     # show a top header bar (metadata always shows above input)
   show_status: true      # show the scroll % indicator
 
 input:

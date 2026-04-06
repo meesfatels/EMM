@@ -2,10 +2,11 @@ package loader
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 func readYAML(path string, out any) error {
@@ -18,6 +19,7 @@ func readYAML(path string, out any) error {
 	}
 	return nil
 }
+
 func loadYAMLDir[T any](dir string) (map[string]T, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
