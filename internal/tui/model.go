@@ -26,9 +26,11 @@ type chatModel struct {
 	streaming     bool
 	tokenCh       chan string
 	width         int
+	height        int
 	ready         bool
-	historyCache  string // Rendered previous messages
-	lastWidth     int    // Track width for cache invalidation
+	historyCache  string
+	lastWidth     int
+	autoScroll    bool // Whether to snap to bottom
 }
 
 func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Runtime, session *runtime.Session, agentName, minionName string) chatModel {
@@ -40,8 +42,12 @@ func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Ru
 	ta.SetHeight(3)
 	ta.KeyMap.InsertNewline.SetEnabled(false)
 
+	vp := viewport.New(0, 0)
+	vp.KeyMap.Up.SetEnabled(false)   // We'll handle these manually for better control
+	vp.KeyMap.Down.SetEnabled(false)
+
 	return chatModel{
-		viewport:   viewport.New(80, 20),
+		viewport:   vp,
 		textarea:   ta,
 		session:    session,
 		rt:         rt,
@@ -49,5 +55,6 @@ func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Ru
 		cancel:     cancel,
 		agentName:  agentName,
 		minionName: minionName,
+		autoScroll: true,
 	}
 }

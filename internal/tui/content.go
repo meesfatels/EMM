@@ -24,7 +24,6 @@ func (m chatModel) refreshContent() chatModel {
 	}
 
 	// Rebuild the history cache if it's empty.
-	// We cache all but the last message (which is usually the one being streamed).
 	if m.historyCache == "" && len(m.messages) > 1 {
 		var sb strings.Builder
 		for i := 0; i < len(m.messages)-1; i++ {
@@ -40,9 +39,13 @@ func (m chatModel) refreshContent() chatModel {
 	if len(m.messages) > 0 {
 		sb.WriteString(renderMessage(m.messages[len(m.messages)-1], m.agentName, m.rt.Config.Username, width))
 	}
+	// Add a little extra space at the bottom for breathing room
+	sb.WriteString("\n")
 
 	m.viewport.SetContent(sb.String())
-	m.viewport.GotoBottom()
+	if m.autoScroll {
+		m.viewport.GotoBottom()
+	}
 	return m
 }
 

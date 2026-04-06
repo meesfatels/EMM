@@ -21,12 +21,28 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			m.cancel()
 			return m, tea.Quit
-		case tea.KeyCtrlU:
+
+		case tea.KeyUp:
+			m.viewport.LineUp(1)
+			m.autoScroll = false
+			return m, nil
+		case tea.KeyDown:
+			m.viewport.LineDown(1)
+			if m.viewport.AtBottom() {
+				m.autoScroll = true
+			}
+			return m, nil
+		case tea.KeyPgUp, tea.KeyCtrlU:
 			m.viewport.HalfPageUp()
+			m.autoScroll = false
 			return m, nil
-		case tea.KeyCtrlD:
+		case tea.KeyPgDown, tea.KeyCtrlD:
 			m.viewport.HalfPageDown()
+			if m.viewport.AtBottom() {
+				m.autoScroll = true
+			}
 			return m, nil
+
 		case tea.KeyEnter:
 			if m.streaming {
 				break
@@ -50,6 +66,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.messages = append(m.messages, message{role: "assistant", content: ""})
 			m.streaming = true
 			m.tokenCh = make(chan string, 256)
+			m.autoScroll = true // Force snap back on message
 			m = m.refreshContent()
 			return m, tea.Batch(m.sendMessage(input), m.waitForToken())
 		}
@@ -67,16 +84,19 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.messages[len(m.messages)-1].content += fmt.Sprintf("\n[error: %v]", msg.err)
 		}
 		m = m.refreshContent()
-		m = m.finalizeLastMessage() // Move finished assistant msg to cache
+		m = m.finalizeLastMessage()
 		return m, nil
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
-		// Header (1) + Border Padding (2) + Textarea (3) + extra spacing (2)
-		m.viewport.Height = msg.Height - 1 - 3 - 2
+		m.height = msg.Height
+		m.ready = true
+
+		// Dedicate exact space for elements
+		// Header (1) + Status (1) + Input (5) = 7 lines fixed
+		m.viewport.Height = msg.Height - 7
 		m.viewport.Width = msg.Width
 		m.textarea.SetWidth(msg.Width - 4)
-		m.ready = true
 		return m.refreshContent(), nil
 	}
 
