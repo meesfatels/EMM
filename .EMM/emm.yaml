@@ -1,4 +1,0 @@
-# EMM configuration
-api_key: ""        # required: your OpenRouter API key
-username: "user"   # your display name in conversations
-# base_url: ""     # optional: override the API endpoint
