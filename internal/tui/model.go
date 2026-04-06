@@ -14,23 +14,23 @@ type message struct {
 }
 
 type chatModel struct {
-	viewport      viewport.Model
-	textarea      textarea.Model
-	messages      []message
-	session       *runtime.Session
-	rt            *runtime.Runtime
-	ctx           context.Context
-	cancel        context.CancelFunc
-	agentName     string
-	minionName    string
-	streaming     bool
-	tokenCh       chan string
-	width         int
-	height        int
-	ready         bool
-	historyCache  string
-	lastWidth     int
-	autoScroll    bool // Whether to snap to bottom
+	viewport     viewport.Model
+	textarea     textarea.Model
+	messages     []message
+	session      *runtime.Session
+	rt           *runtime.Runtime
+	ctx          context.Context
+	cancel       context.CancelFunc
+	agentName    string
+	minionName   string
+	streaming    bool
+	tokenCh      chan streamEvent
+	width        int
+	height       int
+	ready        bool
+	historyCache string
+	lastWidth    int
+	autoScroll   bool // Whether to snap to bottom
 }
 
 func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Runtime, session *runtime.Session, agentName, minionName string) chatModel {
@@ -43,7 +43,7 @@ func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *runtime.Ru
 	ta.KeyMap.InsertNewline.SetEnabled(false)
 
 	vp := viewport.New(0, 0)
-	vp.KeyMap.Up.SetEnabled(false)   // We'll handle these manually for better control
+	vp.KeyMap.Up.SetEnabled(false) // We'll handle these manually for better control
 	vp.KeyMap.Down.SetEnabled(false)
 
 	return chatModel{

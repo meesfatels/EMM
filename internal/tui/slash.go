@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -22,17 +23,19 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 		for name := range m.rt.Agents {
 			agents = append(agents, name)
 		}
+		sort.Strings(agents)
 		minions := make([]string, 0, len(m.rt.Minions))
 		for name := range m.rt.Minions {
 			minions = append(minions, name)
 		}
+		sort.Strings(minions)
 		m.messages = append(m.messages, message{
 			role: "system",
 			content: fmt.Sprintf(
 				"/agent <name>   — switch agent (resets session)\n"+
 					"/minion <name>  — switch minion (resets session)\n"+
-					"/save <name>    — save conversation to .EMM/conversations/<name>.md\n"+
-					"/load <name>    — load conversation from .EMM/conversations/<name>.md\n"+
+					"/save <name>    — save conversation to ~/.emm/conversations/<name>.md\n"+
+					"/load <name>    — load conversation from ~/.emm/conversations/<name>.md\n"+
 					"/destroy <name> — delete a saved conversation\n"+
 					"/help           — show this help\n\n"+
 					"agents:  %s\n"+
@@ -113,7 +116,11 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			m.messages = append(m.messages, message{role: "system", content: "usage: /destroy <name>"})
 			break
 		}
-		name := parts[1]
+		name, err := runtime.NormalizeConversationName(parts[1])
+		if err != nil {
+			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("error: %v", err)})
+			break
+		}
 		path := filepath.Join(m.rt.Dir, "conversations", name+".md")
 		if err := os.Remove(path); err != nil {
 			if os.IsNotExist(err) {

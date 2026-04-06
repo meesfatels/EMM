@@ -7,6 +7,13 @@ import (
 	"path/filepath"
 )
 
+func fileModeFor(rel string) os.FileMode {
+	if rel == "emm.yaml" {
+		return 0o600
+	}
+	return 0o644
+}
+
 func Init(templateFS fs.FS) error {
 	dir, err := Dir()
 	if err != nil {
@@ -31,6 +38,6 @@ func Init(templateFS fs.FS) error {
 		if err != nil {
 			return fmt.Errorf("reading template %s: %w", rel, err)
 		}
-		return os.WriteFile(target, data, 0644)
+		return os.WriteFile(target, data, fileModeFor(rel))
 	})
 }

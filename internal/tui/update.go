@@ -65,7 +65,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Start assistant message
 			m.messages = append(m.messages, message{role: "assistant", content: ""})
 			m.streaming = true
-			m.tokenCh = make(chan string, 256)
+			m.tokenCh = make(chan streamEvent, 256)
 			m.autoScroll = true // Force snap back on message
 			m = m.refreshContent()
 			return m, tea.Batch(m.sendMessage(input), m.waitForToken())

@@ -3,6 +3,7 @@ package openrouter
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 )
@@ -13,21 +14,38 @@ type Stream struct {
 }
 
 func newStream(r io.ReadCloser) *Stream {
+	scanner := bufio.NewScanner(r)
+	// SSE chunks can exceed the scanner default (64K) for large deltas.
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+
 	return &Stream{
 		reader:  r,
-		scanner: bufio.NewScanner(r),
+		scanner: scanner,
 	}
 }
 func (s *Stream) Recv() (string, error) {
 	for s.scanner.Scan() {
-		line := s.scanner.Text()
-		if !strings.HasPrefix(line, "data: ") {
+		line := strings.TrimSpace(s.scanner.Text())
+		if !strings.HasPrefix(line, "data:") {
 			continue
 		}
-		data := strings.TrimPrefix(line, "data: ")
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "" {
+			continue
+		}
 		if data == "[DONE]" {
 			return "", io.EOF
 		}
+
+		var errChunk struct {
+			Error struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if err := json.Unmarshal([]byte(data), &errChunk); err == nil && errChunk.Error.Message != "" {
+			return "", fmt.Errorf("openrouter stream error: %s", errChunk.Error.Message)
+		}
+
 		var chunk struct {
 			Choices []struct {
 				Delta struct {
@@ -43,7 +61,7 @@ func (s *Stream) Recv() (string, error) {
 		}
 	}
 	if err := s.scanner.Err(); err != nil {
-		return "", err
+		return "", fmt.Errorf("reading stream: %w", err)
 	}
 	return "", io.EOF
 }

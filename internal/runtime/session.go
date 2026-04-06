@@ -6,11 +6,31 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/meesfatels/emm/internal/loader"
 	"github.com/meesfatels/emm/internal/openrouter"
 )
+
+var conversationNameRx = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+
+func NormalizeConversationName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", fmt.Errorf("conversation name cannot be empty")
+	}
+	if name == "." || name == ".." {
+		return "", fmt.Errorf("invalid conversation name %q", name)
+	}
+	if strings.ContainsAny(name, `/\\`) || filepath.Base(name) != name {
+		return "", fmt.Errorf("conversation name must not contain path separators")
+	}
+	if !conversationNameRx.MatchString(name) {
+		return "", fmt.Errorf("conversation name may contain only letters, numbers, dot, underscore, and hyphen")
+	}
+	return name, nil
+}
 
 type Session struct {
 	agent      *loader.Agent
@@ -36,12 +56,17 @@ func NewSession(agent *loader.Agent, minionName string, minion loader.Minion, cl
 }
 
 func (s *Session) Save(emmDir, name string) error {
+	safeName, err := NormalizeConversationName(name)
+	if err != nil {
+		return err
+	}
+
 	convsDir := filepath.Join(emmDir, "conversations")
 	if err := os.MkdirAll(convsDir, 0o755); err != nil {
 		return fmt.Errorf("creating conversations dir: %w", err)
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "# %s — %s/%s\n\n", name, s.agent.Name, s.minionName)
+	fmt.Fprintf(&b, "# %s — %s/%s\n\n", safeName, s.agent.Name, s.minionName)
 	for _, msg := range s.messages {
 		switch msg.Role {
 		case "user":
@@ -50,11 +75,16 @@ func (s *Session) Save(emmDir, name string) error {
 			fmt.Fprintf(&b, "## %s-%s\n\n%s\n\n", s.agent.Name, s.minionName, msg.Content)
 		}
 	}
-	return os.WriteFile(filepath.Join(convsDir, name+".md"), []byte(b.String()), 0o644)
+	return os.WriteFile(filepath.Join(convsDir, safeName+".md"), []byte(b.String()), 0o644)
 }
 
 func (s *Session) Load(emmDir, name string) error {
-	convPath := filepath.Join(emmDir, "conversations", name+".md")
+	safeName, err := NormalizeConversationName(name)
+	if err != nil {
+		return err
+	}
+
+	convPath := filepath.Join(emmDir, "conversations", safeName+".md")
 	data, err := os.ReadFile(convPath)
 	if err != nil {
 		return fmt.Errorf("reading conversation file: %w", err)
@@ -62,7 +92,7 @@ func (s *Session) Load(emmDir, name string) error {
 
 	content := string(data)
 	lines := strings.Split(content, "\n")
-	
+
 	// Keep the system prompt
 	var newMessages []openrouter.Message
 	if len(s.messages) > 0 && s.messages[0].Role == "system" {
