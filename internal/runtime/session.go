@@ -12,6 +12,17 @@ import (
 	"github.com/meesfatels/emm/internal/openrouter"
 )
 
+func NormalizeConversationName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", fmt.Errorf("conversation name cannot be empty")
+	}
+	if name == "." || name == ".." || filepath.Base(name) != name {
+		return "", fmt.Errorf("invalid conversation name %q", name)
+	}
+	return name, nil
+}
+
 type Session struct {
 	agent      *loader.Agent
 	minionName string
@@ -36,6 +47,11 @@ func NewSession(agent *loader.Agent, minionName string, minion loader.Minion, cl
 }
 
 func (s *Session) Save(emmDir, name string) error {
+	name, err := NormalizeConversationName(name)
+	if err != nil {
+		return err
+	}
+
 	convsDir := filepath.Join(emmDir, "conversations")
 	if err := os.MkdirAll(convsDir, 0o755); err != nil {
 		return fmt.Errorf("creating conversations dir: %w", err)
@@ -54,6 +70,11 @@ func (s *Session) Save(emmDir, name string) error {
 }
 
 func (s *Session) Load(emmDir, name string) error {
+	name, err := NormalizeConversationName(name)
+	if err != nil {
+		return err
+	}
+
 	convPath := filepath.Join(emmDir, "conversations", name+".md")
 	data, err := os.ReadFile(convPath)
 	if err != nil {
@@ -62,7 +83,7 @@ func (s *Session) Load(emmDir, name string) error {
 
 	content := string(data)
 	lines := strings.Split(content, "\n")
-	
+
 	// Keep the system prompt
 	var newMessages []openrouter.Message
 	if len(s.messages) > 0 && s.messages[0].Role == "system" {
