@@ -1,18 +1,18 @@
-package loader_test
+package agent_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/meesfatels/emm/internal/loader"
+	"github.com/meesfatels/emm/internal/agent"
 )
 
 func TestLoadConfig_Valid(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, filepath.Join(dir, "emm.yaml"), "api_key: sk-abc123\nusername: alice\n")
 
-	c, err := loader.NewLoader(dir).LoadConfig()
+	c, err := agent.LoadConfig(dir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestLoadConfig_MissingAPIKey(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, filepath.Join(dir, "emm.yaml"), "username: bob\n")
 
-	if _, err := loader.NewLoader(dir).LoadConfig(); err == nil {
+	if _, err := agent.LoadConfig(dir); err == nil {
 		t.Error("expected error for missing api_key")
 	}
 }
@@ -40,7 +40,7 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, filepath.Join(dir, "emm.yaml"), "api_key: sk-x\n")
 
-	c, err := loader.NewLoader(dir).LoadConfig()
+	c, err := agent.LoadConfig(dir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

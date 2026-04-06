@@ -28,10 +28,10 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 		m.messages = append(m.messages, message{
 			role: "system",
 			content: fmt.Sprintf(
-				"/agent <name>   — switch agent (resets session)\n"+
-					"/minion <name>  — switch minion (resets session)\n"+
-					"/save <name>    — save conversation to .EMM/conversations/<name>.md\n"+
-					"/load <name>    — load conversation from .EMM/conversations/<name>.md\n"+
+				"/agent <name>   — switch agent\n"+
+					"/minion <name>  — switch minion\n"+
+					"/save <name>    — save conversation to .emm/conversations/<name>.md\n"+
+					"/load <name>    — load conversation from .emm/conversations/<name>.md\n"+
 					"/destroy <name> — delete a saved conversation\n"+
 					"/help           — show this help\n\n"+
 					"agents:  %s\n"+
@@ -46,13 +46,13 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		name := parts[1]
-		agent, ok := m.rt.Agents[name]
+		a, ok := m.rt.Agents[name]
 		if !ok {
 			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("unknown agent %q", name)})
 			break
 		}
 		m.agentName = name
-		m.session.SwitchAgent(agent)
+		m.session.SwitchAgent(a)
 		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("switched to agent %q", name)})
 		m.historyCache = ""
 
@@ -83,7 +83,6 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			break
 		}
 		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("saved as %q", name)})
-		// We don't clear cache on save
 
 	case "/load":
 		if len(parts) < 2 {
@@ -95,16 +94,14 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("error: %v", err)})
 			break
 		}
-		// Update TUI messages
 		m.messages = nil
-		m.historyCache = "" // Reset cache for new conversation
+		m.historyCache = ""
 		for _, msg := range m.session.Messages() {
 			if msg.Role == "system" {
 				continue
 			}
 			m.messages = append(m.messages, message{role: msg.Role, content: msg.Content})
 		}
-		// Rebuild history cache for all loaded messages except the (potential) system announcement
 		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("loaded %q", name)})
 
 	case "/destroy":

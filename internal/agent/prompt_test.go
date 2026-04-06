@@ -1,23 +1,22 @@
-package runtime_test
+package agent_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/meesfatels/emm/internal/loader"
-	"github.com/meesfatels/emm/internal/runtime"
+	"github.com/meesfatels/emm/internal/agent"
 )
 
 func TestBuildPrompt_SingleFile(t *testing.T) {
-	instinct := &loader.Instinct{
-		Files: []loader.InstinctFile{
+	a := &agent.Agent{
+		Instinct: []agent.InstinctFile{
 			{Name: "personality.md", Interpretation: "Core personality"},
 		},
 		Content: map[string]string{
 			"personality.md": "You are a helpful assistant.",
 		},
 	}
-	got := runtime.BuildPrompt(instinct)
+	got := agent.BuildPrompt(a)
 	if !strings.Contains(got, "[personality.md: Core personality]") {
 		t.Errorf("expected header in prompt, got: %q", got)
 	}
@@ -27,8 +26,8 @@ func TestBuildPrompt_SingleFile(t *testing.T) {
 }
 
 func TestBuildPrompt_MultipleFiles(t *testing.T) {
-	instinct := &loader.Instinct{
-		Files: []loader.InstinctFile{
+	a := &agent.Agent{
+		Instinct: []agent.InstinctFile{
 			{Name: "a.md", Interpretation: "First"},
 			{Name: "b.md", Interpretation: "Second"},
 		},
@@ -37,7 +36,7 @@ func TestBuildPrompt_MultipleFiles(t *testing.T) {
 			"b.md": "Content B",
 		},
 	}
-	got := runtime.BuildPrompt(instinct)
+	got := agent.BuildPrompt(a)
 	if !strings.Contains(got, "Content A") || !strings.Contains(got, "Content B") {
 		t.Errorf("expected both files in prompt, got: %q", got)
 	}
@@ -47,8 +46,8 @@ func TestBuildPrompt_MultipleFiles(t *testing.T) {
 }
 
 func TestBuildPrompt_MissingFile(t *testing.T) {
-	instinct := &loader.Instinct{
-		Files: []loader.InstinctFile{
+	a := &agent.Agent{
+		Instinct: []agent.InstinctFile{
 			{Name: "missing.md", Interpretation: "Won't be found"},
 			{Name: "present.md", Interpretation: "Present"},
 		},
@@ -56,7 +55,7 @@ func TestBuildPrompt_MissingFile(t *testing.T) {
 			"present.md": "I am here",
 		},
 	}
-	got := runtime.BuildPrompt(instinct)
+	got := agent.BuildPrompt(a)
 	if strings.Contains(got, "missing.md") {
 		t.Errorf("missing file should be skipped, got: %q", got)
 	}
@@ -66,7 +65,7 @@ func TestBuildPrompt_MissingFile(t *testing.T) {
 }
 
 func TestBuildPrompt_Empty(t *testing.T) {
-	got := runtime.BuildPrompt(&loader.Instinct{})
+	got := agent.BuildPrompt(&agent.Agent{})
 	if got != "" {
 		t.Errorf("expected empty prompt, got: %q", got)
 	}

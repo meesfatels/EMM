@@ -21,13 +21,11 @@ func (m chatModel) refreshContent() chatModel {
 
 	width := m.contentWidth()
 
-	// If the window resized, clear the cache so everything is re-wrapped.
 	if m.width != m.lastWidth {
 		m.historyCache = ""
 		m.lastWidth = m.width
 	}
 
-	// Rebuild the history cache if it's empty.
 	if m.historyCache == "" && len(m.messages) > 1 {
 		var sb strings.Builder
 		for i := 0; i < len(m.messages)-1; i++ {
@@ -66,6 +64,15 @@ func renderMessage(msg message, agentName, userName string, width int) string {
 		return st.user.Render(userName) + "\n" + st.msg.Width(width).Render(msg.content) + "\n"
 	case "assistant":
 		return st.assistant.Render(agentName) + "\n" + st.msg.Width(width).Render(msg.content) + "\n"
+	case "shell":
+		lines := strings.SplitN(msg.content, "\n", 2)
+		cmd := lines[0]
+		output := ""
+		if len(lines) > 1 {
+			output = lines[1]
+		}
+		rendered := st.shellCmd.Render("$ "+cmd) + "\n" + st.shellOut.Width(width).Render(output)
+		return rendered + "\n"
 	case "system":
 		return st.system.Width(width).Render(msg.content) + "\n"
 	default:

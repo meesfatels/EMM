@@ -6,8 +6,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/meesfatels/emm/internal/config"
-	"github.com/meesfatels/emm/internal/runtime"
+	"github.com/meesfatels/emm/internal/agent"
 	"github.com/meesfatels/emm/internal/tui"
 	"github.com/spf13/cobra"
 )
@@ -20,11 +19,11 @@ func newRunCmd() *cobra.Command {
 		Short: "Run an agent",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dir, err := config.Dir()
+			dir, err := agent.Dir()
 			if err != nil {
 				return err
 			}
-			rt, err := runtime.New(dir)
+			rt, err := agent.NewRuntime(dir)
 			if err != nil {
 				return err
 			}
@@ -50,16 +49,16 @@ func newRunCmd() *cobra.Command {
 	return cmd
 }
 
-func runAgent(rt *runtime.Runtime, agentName string, minionName string) error {
-	agent, ok := rt.Agents[agentName]
+func runAgent(rt *agent.Runtime, agentName, minionName string) error {
+	a, ok := rt.Agents[agentName]
 	if !ok {
 		return fmt.Errorf("unknown agent %q", agentName)
 	}
-	minion, ok := rt.Minions[minionName]
+	m, ok := rt.Minions[minionName]
 	if !ok {
 		return fmt.Errorf("unknown minion %q", minionName)
 	}
-	session := runtime.NewSession(agent, minionName, minion, rt.Client, rt.Config.Username)
+	session := agent.NewSession(a, minionName, m, rt.Client, rt.Config.Username)
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 	return tui.Run(ctx, cancel, rt, session, agentName, minionName)

@@ -58,25 +58,40 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 
-			// Add user message, then immediately finalize it into cache
 			m.messages = append(m.messages, message{role: "user", content: input})
 			m = m.finalizeLastMessage()
 
-			// Start assistant message
 			m.messages = append(m.messages, message{role: "assistant", content: ""})
 			m.streaming = true
-			m.tokenCh = make(chan string, 256)
-			m.autoScroll = true // Force snap back on message
+			m.eventCh = make(chan sessionEvent, 256)
+			m.autoScroll = true
 			m = m.refreshContent()
-			return m, tea.Batch(m.sendMessage(input), m.waitForToken())
+			return m, tea.Batch(m.sendMessage(input), m.waitForEvent())
 		}
 
-	case tokenMsg:
+	case tokenEvent:
 		if len(m.messages) > 0 {
 			m.messages[len(m.messages)-1].content += string(msg)
 		}
 		m = m.refreshContent()
-		return m, m.waitForToken()
+		return m, m.waitForEvent()
+
+	case shellEvent:
+		// Finalize or remove the current assistant bubble.
+		if len(m.messages) > 0 && m.messages[len(m.messages)-1].role == "assistant" {
+			last := &m.messages[len(m.messages)-1]
+			if last.content != "" {
+				m = m.finalizeLastMessage()
+			} else {
+				m.messages = m.messages[:len(m.messages)-1]
+			}
+		}
+		// Add the shell execution record and open a new assistant bubble.
+		m.messages = append(m.messages, message{role: "shell", content: msg.cmd + "\n" + msg.output})
+		m = m.finalizeLastMessage()
+		m.messages = append(m.messages, message{role: "assistant", content: ""})
+		m = m.refreshContent()
+		return m, m.waitForEvent()
 
 	case doneMsg:
 		m.streaming = false
@@ -110,7 +125,6 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	// Always update viewport for mouse/keys
 	m.viewport, cmd = m.viewport.Update(msg)
 	cmds = append(cmds, cmd)
 

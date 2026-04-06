@@ -1,36 +1,35 @@
-package runtime
+package agent
 
 import (
 	"fmt"
 
-	"github.com/meesfatels/emm/internal/loader"
+	"github.com/meesfatels/emm/internal/minion"
 	"github.com/meesfatels/emm/internal/openrouter"
 )
 
 type Runtime struct {
 	Dir     string
-	Config  loader.Config
-	Minions map[string]loader.Minion
-	Agents  map[string]*loader.Agent
+	Config  Config
+	Minions map[string]minion.Minion
+	Agents  map[string]*Agent
 	Client  *openrouter.Client
 }
 
-func New(emmDir string) (*Runtime, error) {
-	l := loader.NewLoader(emmDir)
-	cfg, err := l.LoadConfig()
+func NewRuntime(dir string) (*Runtime, error) {
+	cfg, err := LoadConfig(dir)
 	if err != nil {
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
-	minions, err := l.LoadMinions()
+	minions, err := minion.Load(dir)
 	if err != nil {
 		return nil, fmt.Errorf("loading minions: %w", err)
 	}
-	agents, err := l.LoadAgents()
+	agents, err := LoadAll(dir)
 	if err != nil {
 		return nil, fmt.Errorf("loading agents: %w", err)
 	}
 	return &Runtime{
-		Dir:     emmDir,
+		Dir:     dir,
 		Config:  cfg,
 		Minions: minions,
 		Agents:  agents,
