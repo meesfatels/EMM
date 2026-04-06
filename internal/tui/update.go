@@ -92,9 +92,14 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.ready = true
 
-		// Dedicate exact space for elements
-		// Header (1) + Status (1) + Input (5) = 7 lines fixed
-		m.viewport.Height = msg.Height - 7
+		fixed := cfg.Layout.InputHeight + 1 // input + separator
+		if cfg.Layout.ShowHeader {
+			fixed++
+		}
+		if cfg.Layout.ShowStatus {
+			fixed++
+		}
+		m.viewport.Height = msg.Height - fixed
 		m.viewport.Width = msg.Width
 		m.textarea.SetWidth(msg.Width - 4)
 		return m.refreshContent(), nil
