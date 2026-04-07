@@ -64,14 +64,14 @@ func renderMessage(msg message, agentName, userName string, width int) string {
 		return st.user.Render(userName) + "\n" + st.msg.Width(width).Render(msg.content) + "\n"
 	case "assistant":
 		return st.assistant.Render(agentName) + "\n" + st.msg.Width(width).Render(msg.content) + "\n"
-	case "shell":
+	case "tool":
 		lines := strings.SplitN(msg.content, "\n", 2)
-		cmd := lines[0]
+		header := lines[0]
 		output := ""
 		if len(lines) > 1 {
 			output = lines[1]
 		}
-		rendered := st.shellCmd.Render("$ "+cmd) + "\n" + st.shellOut.Width(width).Render(output)
+		rendered := st.toolHeader.Render("🔧 "+header) + "\n" + st.toolBody.Width(width).Render(output)
 		return rendered + "\n"
 	case "system":
 		return st.system.Width(width).Render(msg.content) + "\n"

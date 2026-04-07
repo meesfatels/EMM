@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -11,27 +10,8 @@ import (
 
 	"github.com/meesfatels/emm/internal/minion"
 	"github.com/meesfatels/emm/internal/openrouter"
-	"github.com/meesfatels/emm/internal/shell"
+	"github.com/meesfatels/emm/internal/tool"
 )
-
-// runShellTool is the OpenRouter tool definition for shell execution.
-var runShellTool = openrouter.Tool{
-	Type: "function",
-	Function: openrouter.ToolDefinition{
-		Name:        "run_shell",
-		Description: "Execute a shell command and return its output.",
-		Parameters: map[string]any{
-			"type": "object",
-			"properties": map[string]any{
-				"cmd": map[string]any{
-					"type":        "string",
-					"description": "The shell command to execute.",
-				},
-			},
-			"required": []string{"cmd"},
-		},
-	},
-}
 
 type Session struct {
 	agent      *Agent
@@ -39,7 +19,6 @@ type Session struct {
 	username   string
 	minion     minion.Minion
 	client     *openrouter.Client
-	executor   *shell.Executor
 	messages   []openrouter.Message
 }
 
@@ -51,7 +30,6 @@ func NewSession(a *Agent, minionName string, m minion.Minion, client *openrouter
 		username:   username,
 		minion:     m,
 		client:     client,
-		executor:   shell.NewExecutor(a.Shell),
 		messages: []openrouter.Message{
 			{Role: "system", Content: prompt},
 		},
@@ -60,7 +38,6 @@ func NewSession(a *Agent, minionName string, m minion.Minion, client *openrouter
 
 func (s *Session) SwitchAgent(a *Agent) {
 	s.agent = a
-	s.executor = shell.NewExecutor(a.Shell)
 }
 
 func (s *Session) SwitchMinion(m minion.Minion, name string) {
@@ -73,10 +50,10 @@ func (s *Session) Messages() []openrouter.Message {
 }
 
 // Send sends content to the model, streaming tokens via onToken.
-// If the agent has shell rules, tool calls are handled transparently:
-// onShell is called for each execution with the command and its output.
+// Tool calls are handled transparently using the agent's tools.
+// onTool is called for each execution with the tool name, input, and output.
 // The session retries until the model produces a plain text response.
-func (s *Session) Send(ctx context.Context, content string, onToken func(string), onShell func(cmd, output string)) (string, error) {
+func (s *Session) Send(ctx context.Context, content string, onToken func(string), onTool func(name, input, output string)) (string, error) {
 	s.messages = append(s.messages, openrouter.Message{
 		Role:    "user",
 		Content: content,
@@ -84,8 +61,11 @@ func (s *Session) Send(ctx context.Context, content string, onToken func(string)
 	startLen := len(s.messages)
 
 	var tools []openrouter.Tool
-	if len(s.agent.Shell) > 0 {
-		tools = []openrouter.Tool{runShellTool}
+	toolMap := make(map[string]tool.Tool)
+	for _, t := range s.agent.Tools {
+		def := t.Definition()
+		tools = append(tools, def)
+		toolMap[def.Function.Name] = t
 	}
 
 	const maxRounds = 20
@@ -134,29 +114,31 @@ func (s *Session) Send(ctx context.Context, content string, onToken func(string)
 
 		// Execute each tool call and append the results.
 		for _, tc := range toolCalls {
-			var args struct {
-				Cmd string `json:"cmd"`
-			}
-			if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
-				s.messages = s.messages[:startLen-1]
-				return "", fmt.Errorf("parsing tool arguments: %w", err)
+			t, ok := toolMap[tc.Function.Name]
+			if !ok {
+				s.messages = append(s.messages, openrouter.Message{
+					Role:       "tool",
+					ToolCallID: tc.ID,
+					Content:    fmt.Sprintf("error: tool %s not found", tc.Function.Name),
+				})
+				continue
 			}
 
-			output, runErr := s.executor.Run(ctx, args.Cmd)
+			output, runErr := t.Execute(ctx, tc.Function.Arguments)
 			result := strings.TrimSpace(output)
 			if runErr != nil {
 				if result != "" {
-					result += "\n[exit error: " + runErr.Error() + "]"
+					result += "\n[error: " + runErr.Error() + "]"
 				} else {
-					result = "[exit error: " + runErr.Error() + "]"
+					result = "[error: " + runErr.Error() + "]"
 				}
 			}
 			if result == "" {
 				result = "(no output)"
 			}
 
-			if onShell != nil {
-				onShell(args.Cmd, result)
+			if onTool != nil {
+				onTool(tc.Function.Name, tc.Function.Arguments, result)
 			}
 
 			s.messages = append(s.messages, openrouter.Message{
@@ -165,7 +147,6 @@ func (s *Session) Send(ctx context.Context, content string, onToken func(string)
 				Content:    result,
 			})
 		}
-		// Loop to get the model's response after tool execution.
 	}
 	s.messages = s.messages[:startLen-1]
 	return "", fmt.Errorf("exceeded maximum tool call rounds (%d)", maxRounds)
@@ -177,16 +158,22 @@ func (s *Session) Save(emmDir, name string) error {
 		return fmt.Errorf("creating conversations dir: %w", err)
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "# %s — %s/%s\n\n", name, s.agent.Name, s.minionName)
+	fmt.Fprintf(&b, "---\nagent: %s\nminion: %s\n---\n\n", s.agent.Name, s.minionName)
+
 	for _, msg := range s.messages {
-		switch msg.Role {
-		case "user":
-			fmt.Fprintf(&b, "## %s\n\n%s\n\n", s.username, msg.Content)
-		case "assistant":
-			if msg.Content != "" {
-				fmt.Fprintf(&b, "## %s-%s\n\n%s\n\n", s.agent.Name, s.minionName, msg.Content)
-			}
+		if msg.Content == "" {
+			continue
 		}
+		if msg.Role != "user" && msg.Role != "assistant" {
+			continue
+		}
+
+		displayName := s.username
+		if msg.Role == "assistant" {
+			displayName = s.agent.Name
+		}
+
+		fmt.Fprintf(&b, "<!-- role: %s -->\n## %s\n\n%s\n\n", msg.Role, displayName, strings.TrimSpace(msg.Content))
 	}
 	return os.WriteFile(filepath.Join(convsDir, name+".md"), []byte(b.String()), 0o644)
 }
@@ -198,41 +185,33 @@ func (s *Session) Load(emmDir, name string) error {
 		return fmt.Errorf("reading conversation file: %w", err)
 	}
 
-	lines := strings.Split(string(data), "\n")
+	content := string(data)
+	sections := strings.Split(content, "<!-- role: ")
 
 	var newMessages []openrouter.Message
 	if len(s.messages) > 0 && s.messages[0].Role == "system" {
 		newMessages = append(newMessages, s.messages[0])
 	}
 
-	var currentRole string
-	var currentContent strings.Builder
-
-	for _, line := range lines {
-		if strings.HasPrefix(line, "## ") {
-			if currentRole != "" {
-				newMessages = append(newMessages, openrouter.Message{
-					Role:    currentRole,
-					Content: strings.TrimSpace(currentContent.String()),
-				})
-				currentContent.Reset()
-			}
-			rolePart := strings.TrimPrefix(line, "## ")
-			if rolePart == s.username {
-				currentRole = "user"
-			} else {
-				currentRole = "assistant"
-			}
+	for _, sec := range sections {
+		if !strings.Contains(sec, " -->") {
 			continue
 		}
-		if currentRole != "" {
-			currentContent.WriteString(line + "\n")
+		parts := strings.SplitN(sec, " -->", 2)
+		role := strings.TrimSpace(parts[0])
+		body := parts[1]
+
+		// Find the first double newline after the header to get the actual content
+		// The header looks like "\n## Name\n\n"
+		msgParts := strings.SplitN(body, "\n\n", 2)
+		if len(msgParts) < 2 {
+			continue
 		}
-	}
-	if currentRole != "" {
+		msgContent := strings.TrimSpace(msgParts[1])
+
 		newMessages = append(newMessages, openrouter.Message{
-			Role:    currentRole,
-			Content: strings.TrimSpace(currentContent.String()),
+			Role:    role,
+			Content: msgContent,
 		})
 	}
 

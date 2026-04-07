@@ -76,7 +76,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m = m.refreshContent()
 		return m, m.waitForEvent()
 
-	case shellEvent:
+	case toolEvent:
 		// Finalize or remove the current assistant bubble.
 		if len(m.messages) > 0 && m.messages[len(m.messages)-1].role == "assistant" {
 			last := &m.messages[len(m.messages)-1]
@@ -86,8 +86,8 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.messages = m.messages[:len(m.messages)-1]
 			}
 		}
-		// Add the shell execution record and open a new assistant bubble.
-		m.messages = append(m.messages, message{role: "shell", content: msg.cmd + "\n" + msg.output})
+		// Add the tool execution record and open a new assistant bubble.
+		m.messages = append(m.messages, message{role: "tool", content: msg.name + " " + msg.input + "\n" + msg.output})
 		m = m.finalizeLastMessage()
 		m.messages = append(m.messages, message{role: "assistant", content: ""})
 		m = m.refreshContent()

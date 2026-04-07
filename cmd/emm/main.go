@@ -8,10 +8,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var version = "dev"
+
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "emm",
-		Short: "Eidolon Minion Manager",
+		Use:     "emm",
+		Short:   "Eidolon Minion Manager",
+		Version: version,
 	}
 	rootCmd.AddCommand(
 		newInitCmd(emm.TemplateFS),
