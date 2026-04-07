@@ -4,13 +4,14 @@ class Emm < Formula
   url "https://github.com/meesfatels/EMM.git", branch: "main"
   version "1.0.0"
   head "https://github.com/meesfatels/EMM.git", branch: "dev"
+  license "MIT"
 
   depends_on "go" => :build
 
   def install
     # Use version from the formula or build from source
     ver = build.head? ? "dev-head" : version
-    system "go", "build", "-ldflags", "-s -w -X main.version=#{ver}", "-o", bin/"emm", "./cmd/emm"
+    system "go", "build", "-trimpath", "-ldflags", "-s -w -X main.version=#{ver}", "-o", bin/"emm", "./cmd/emm"
   end
 
   def caveats

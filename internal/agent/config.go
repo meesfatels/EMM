@@ -49,9 +49,9 @@ func Dir() (string, error) {
 	return filepath.Join(home, ".emm"), nil
 }
 
-// Init copies the embedded template into the EMM config directory,
-// skipping files that already exist.
-func Init(templateFS fs.FS) error {
+// Init copies the embedded template into the EMM config directory.
+// If force is true, it overwrites existing files.
+func Init(templateFS fs.FS, force bool) error {
 	dir, err := Dir()
 	if err != nil {
 		return err
@@ -68,8 +68,10 @@ func Init(templateFS fs.FS) error {
 		if d.IsDir() {
 			return os.MkdirAll(target, 0o755)
 		}
-		if _, err := os.Stat(target); err == nil {
-			return nil // already exists, skip
+		if !force {
+			if _, err := os.Stat(target); err == nil {
+				return nil // already exists, skip
+			}
 		}
 		data, err := fs.ReadFile(templateFS, path)
 		if err != nil {

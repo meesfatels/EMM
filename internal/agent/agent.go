@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/meesfatels/emm/internal/shell"
+	"github.com/meesfatels/emm/internal/tool"
 )
 
 type InstinctFile struct {
@@ -23,6 +24,7 @@ type Agent struct {
 	Instinct []InstinctFile
 	Content  map[string]string
 	Shell    []shell.Rule
+	Tools    []tool.Tool
 }
 
 func Load(dir, name string) (*Agent, error) {
@@ -39,12 +41,16 @@ func Load(dir, name string) (*Agent, error) {
 		}
 		content[f.Name] = string(data)
 	}
-	return &Agent{
+	a := &Agent{
 		Name:     name,
 		Instinct: cfg.Instinct,
 		Content:  content,
 		Shell:    cfg.Shell,
-	}, nil
+	}
+	if len(cfg.Shell) > 0 {
+		a.Tools = append(a.Tools, shell.NewExecutor(cfg.Shell))
+	}
+	return a, nil
 }
 
 func LoadAll(dir string) (map[string]*Agent, error) {

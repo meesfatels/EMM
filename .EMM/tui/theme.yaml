@@ -6,6 +6,7 @@ colors:
   user: "#EDE9FE"        # your message label
   assistant: "#A78BFA"   # agent message text
   system: "#6D28D9"      # system / info / dim text
+  tool: "#4ADE80"        # tool / shell execution text
   header_bg: ""          # header background (empty = terminal default)
   header_fg: "#8B5CF6"   # header text
 

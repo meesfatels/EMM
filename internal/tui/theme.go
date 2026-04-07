@@ -17,7 +17,7 @@ type themeColors struct {
 	User      string `yaml:"user"`
 	Assistant string `yaml:"assistant"`
 	System    string `yaml:"system"`
-	Shell     string `yaml:"shell"`
+	Tool      string `yaml:"tool"`
 	HeaderBg  string `yaml:"header_bg"`
 	HeaderFg  string `yaml:"header_fg"`
 }
@@ -45,7 +45,7 @@ func defaultTheme() themeConfig {
 			User:      "#EDE9FE",
 			Assistant: "#A78BFA",
 			System:    "#6D28D9",
-			Shell:     "#4ADE80",
+			Tool:      "#4ADE80",
 			HeaderBg:  "",
 			HeaderFg:  "#8B5CF6",
 		},
@@ -71,15 +71,15 @@ func loadTheme(emmDir string) themeConfig {
 }
 
 type styles struct {
-	user      lipgloss.Style
-	assistant lipgloss.Style
-	system    lipgloss.Style
-	shellCmd  lipgloss.Style
-	shellOut  lipgloss.Style
-	header    lipgloss.Style
-	border    lipgloss.Style
-	msg       lipgloss.Style
-	dim       lipgloss.Style
+	user       lipgloss.Style
+	assistant  lipgloss.Style
+	system     lipgloss.Style
+	toolHeader lipgloss.Style
+	toolBody   lipgloss.Style
+	header     lipgloss.Style
+	border     lipgloss.Style
+	msg        lipgloss.Style
+	dim        lipgloss.Style
 }
 
 func buildStyles(t themeConfig) styles {
@@ -93,12 +93,12 @@ func buildStyles(t themeConfig) styles {
 	}
 
 	return styles{
-		user:      lipgloss.NewStyle().Foreground(lipgloss.Color(c.User)).Bold(true),
-		assistant: lipgloss.NewStyle().Foreground(lipgloss.Color(c.Assistant)),
-		system:    lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)),
-		shellCmd:  lipgloss.NewStyle().Foreground(lipgloss.Color(c.Shell)).Bold(true),
-		shellOut:  lipgloss.NewStyle().Foreground(lipgloss.Color(c.Shell)).PaddingLeft(2),
-		header:    header,
+		user:       lipgloss.NewStyle().Foreground(lipgloss.Color(c.User)).Bold(true),
+		assistant:  lipgloss.NewStyle().Foreground(lipgloss.Color(c.Assistant)),
+		system:     lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)),
+		toolHeader: lipgloss.NewStyle().Foreground(lipgloss.Color(c.Tool)).Bold(true),
+		toolBody:   lipgloss.NewStyle().Foreground(lipgloss.Color(c.Tool)).PaddingLeft(2),
+		header:     header,
 		border: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color(c.Accent)).
