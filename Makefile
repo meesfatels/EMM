@@ -16,4 +16,4 @@ clean:
 	rm -f emm
 
 srcinfo:
-	makepkg --printsrcinfo > packaging/aur/.SRCINFO
+	cd packaging/aur && makepkg --printsrcinfo > .SRCINFO
