@@ -2,9 +2,9 @@ instinct:
   - name: personality.md
     interpretation: "Defines the core personality and tone of this agent."
 
-# shell: allow the agent to run terminal commands (comment out to disable)
-# shell:
-#   - binary: git
-#     deny: ["push", "reset --hard", "clean -f"]
-#   - binary: ls
-#   - binary: cat
+# shell: allow the agent to run terminal commands
+shell:
+  - binary: git
+    deny: ["push", "reset --hard", "clean -f"]
+  - binary: ls
+  - binary: cat

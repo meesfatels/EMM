@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/google/shlex"
 	"github.com/meesfatels/emm/internal/openrouter"
 )
 
@@ -59,8 +60,8 @@ func (e *Executor) Allowed(cmd string) bool {
 	if len(e.rules) == 0 {
 		return false
 	}
-	parts := strings.Fields(cmd)
-	if len(parts) == 0 {
+	parts, err := shlex.Split(cmd)
+	if err != nil || len(parts) == 0 {
 		return false
 	}
 	binary := parts[0]
@@ -85,11 +86,14 @@ func (e *Executor) Run(ctx context.Context, cmd string) (string, error) {
 	if !e.Allowed(cmd) {
 		return "", fmt.Errorf("command not allowed: %s", cmd)
 	}
-	parts := strings.Fields(cmd)
+	parts, err := shlex.Split(cmd)
+	if err != nil {
+		return "", fmt.Errorf("parsing command: %w", err)
+	}
 	c := exec.CommandContext(ctx, parts[0], parts[1:]...)
 	var out bytes.Buffer
 	c.Stdout = &out
 	c.Stderr = &out
-	err := c.Run()
+	err = c.Run()
 	return out.String(), err
 }

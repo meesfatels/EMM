@@ -97,7 +97,12 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 		m.messages = nil
 		m.historyCache = ""
 		for _, msg := range m.session.Messages() {
-			if msg.Role == "system" {
+			// Skip system prompt, tool results, and tool-call-only assistant
+			// messages — they lack the display context the TUI renderer expects.
+			if msg.Role == "system" || msg.Role == "tool" {
+				continue
+			}
+			if msg.Content == "" {
 				continue
 			}
 			m.messages = append(m.messages, message{role: msg.Role, content: msg.Content})

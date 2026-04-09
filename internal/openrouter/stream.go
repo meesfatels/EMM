@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"io"
+	"slices"
 	"strings"
 )
 
@@ -15,11 +16,13 @@ type Stream struct {
 }
 
 func newStream(r io.ReadCloser) *Stream {
-	return &Stream{
+	s := &Stream{
 		reader:    r,
 		scanner:   bufio.NewScanner(r),
 		assembled: make(map[int]*toolCallAssembler),
 	}
+	s.scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	return s
 }
 
 // Recv returns the next text token. Returns io.EOF when the stream ends.
@@ -108,12 +111,14 @@ func (s *Stream) assembleToolCalls() []ToolCall {
 	if len(s.assembled) == 0 {
 		return nil
 	}
-	result := make([]ToolCall, 0, len(s.assembled))
-	for i := 0; i < len(s.assembled); i++ {
-		a, ok := s.assembled[i]
-		if !ok {
-			break
-		}
+	keys := make([]int, 0, len(s.assembled))
+	for k := range s.assembled {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	result := make([]ToolCall, 0, len(keys))
+	for _, k := range keys {
+		a := s.assembled[k]
 		result = append(result, ToolCall{
 			ID:   a.id,
 			Type: a.typ,

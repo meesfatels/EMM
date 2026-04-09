@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -50,7 +52,7 @@ func defaultTheme() themeConfig {
 			HeaderFg:  "#8B5CF6",
 		},
 		Layout: layoutConfig{
-			InputHeight: 3,
+			InputHeight: 1,
 			ShowHeader:  false,
 			ShowStatus:  true,
 		},
@@ -60,14 +62,19 @@ func defaultTheme() themeConfig {
 	}
 }
 
-func loadTheme(emmDir string) themeConfig {
+func loadTheme(emmDir string) (themeConfig, error) {
 	cfg := defaultTheme()
 	data, err := os.ReadFile(filepath.Join(emmDir, "tui", "theme.yaml"))
 	if err != nil {
-		return cfg
+		if errors.Is(err, os.ErrNotExist) {
+			return cfg, nil
+		}
+		return cfg, err
 	}
-	_ = yaml.Unmarshal(data, &cfg)
-	return cfg
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return cfg, fmt.Errorf("parsing theme.yaml: %w", err)
+	}
+	return cfg, nil
 }
 
 type styles struct {
@@ -102,7 +109,7 @@ func buildStyles(t themeConfig) styles {
 		border: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color(c.Accent)).
-			Padding(1, 2),
+			Padding(0, 2),
 		msg: lipgloss.NewStyle().PaddingLeft(2),
 		dim: lipgloss.NewStyle().Foreground(lipgloss.Color(c.System)),
 	}

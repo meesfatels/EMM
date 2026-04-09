@@ -15,20 +15,20 @@ func (m chatModel) View() string {
 
 	if cfg.Layout.ShowHeader {
 		label := fmt.Sprintf("%s  %s", m.agentName, m.minionName)
-		parts = append(parts, st.header.Copy().Width(m.width).Render(label))
+		parts = append(parts, st.header.Width(m.width).Render(label))
 	}
 
 	parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Render(m.viewport.View()))
 
 	if cfg.Layout.ShowStatus {
-		status := fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100)
+		status := fmt.Sprintf("%.0f%%", m.viewport.ScrollPercent()*100)
 		if m.viewport.AtBottom() {
 			status = ""
 		}
 		if !m.autoScroll && !m.viewport.AtBottom() {
 			status += "  scroll locked"
 		}
-		parts = append(parts, st.dim.Copy().Width(m.width).Render(" "+status))
+		parts = append(parts, st.dim.Width(m.width).Render(" "+status))
 	}
 
 	// Metadata label sits directly above the input box.
@@ -38,7 +38,7 @@ func (m chatModel) View() string {
 	if m.streaming {
 		borderColor = cfg.Colors.System
 	}
-	inputBox := st.border.Copy().
+	inputBox := st.border.
 		BorderForeground(lipgloss.Color(borderColor)).
 		Width(m.width - 4).
 		Render(m.textarea.View())

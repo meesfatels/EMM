@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -38,6 +39,9 @@ func NewSession(a *Agent, minionName string, m minion.Minion, client *openrouter
 
 func (s *Session) SwitchAgent(a *Agent) {
 	s.agent = a
+	if len(s.messages) > 0 && s.messages[0].Role == "system" {
+		s.messages[0].Content = BuildPrompt(a)
+	}
 }
 
 func (s *Session) SwitchMinion(m minion.Minion, name string) {
@@ -161,19 +165,29 @@ func (s *Session) Save(emmDir, name string) error {
 	fmt.Fprintf(&b, "---\nagent: %s\nminion: %s\n---\n\n", s.agent.Name, s.minionName)
 
 	for _, msg := range s.messages {
-		if msg.Content == "" {
+		if msg.Role == "system" {
 			continue
 		}
-		if msg.Role != "user" && msg.Role != "assistant" {
-			continue
+		// Machine-readable comment for lossless round-trip (tool calls, IDs, etc.).
+		// json.Marshal HTML-escapes '<', '>', '&' so the output never contains "-->".
+		data, err := json.Marshal(msg)
+		if err != nil {
+			return fmt.Errorf("encoding message: %w", err)
 		}
-
-		displayName := s.username
-		if msg.Role == "assistant" {
-			displayName = s.agent.Name
+		fmt.Fprintf(&b, "<!-- message: %s -->\n", data)
+		// Human-readable section below the comment.
+		switch msg.Role {
+		case "user":
+			fmt.Fprintf(&b, "## %s\n\n%s\n\n", s.username, strings.TrimSpace(msg.Content))
+		case "assistant":
+			if msg.Content != "" {
+				fmt.Fprintf(&b, "## %s\n\n%s\n\n", s.agent.Name, strings.TrimSpace(msg.Content))
+			} else {
+				fmt.Fprintf(&b, "## %s\n\n[%d tool call(s)]\n\n", s.agent.Name, len(msg.ToolCalls))
+			}
+		case "tool":
+			fmt.Fprintf(&b, "## tool\n\n%s\n\n", strings.TrimSpace(msg.Content))
 		}
-
-		fmt.Fprintf(&b, "<!-- role: %s -->\n## %s\n\n%s\n\n", msg.Role, displayName, strings.TrimSpace(msg.Content))
 	}
 	return os.WriteFile(filepath.Join(convsDir, name+".md"), []byte(b.String()), 0o644)
 }
@@ -185,34 +199,46 @@ func (s *Session) Load(emmDir, name string) error {
 		return fmt.Errorf("reading conversation file: %w", err)
 	}
 
-	content := string(data)
-	sections := strings.Split(content, "<!-- role: ")
-
 	var newMessages []openrouter.Message
 	if len(s.messages) > 0 && s.messages[0].Role == "system" {
 		newMessages = append(newMessages, s.messages[0])
 	}
 
-	for _, sec := range sections {
-		if !strings.Contains(sec, " -->") {
-			continue
-		}
-		parts := strings.SplitN(sec, " -->", 2)
-		role := strings.TrimSpace(parts[0])
-		body := parts[1]
+	content := string(data)
+	const msgPrefix = "<!-- message: "
+	const msgSuffix = " -->"
 
-		// Find the first double newline after the header to get the actual content
-		// The header looks like "\n## Name\n\n"
-		msgParts := strings.SplitN(body, "\n\n", 2)
-		if len(msgParts) < 2 {
-			continue
+	if strings.Contains(content, msgPrefix) {
+		// Current format: one JSON-encoded message per <!-- message: {...} --> line.
+		for _, line := range strings.Split(content, "\n") {
+			if !strings.HasPrefix(line, msgPrefix) || !strings.HasSuffix(line, msgSuffix) {
+				continue
+			}
+			jsonStr := line[len(msgPrefix) : len(line)-len(msgSuffix)]
+			var msg openrouter.Message
+			if err := json.Unmarshal([]byte(jsonStr), &msg); err != nil {
+				continue
+			}
+			newMessages = append(newMessages, msg)
 		}
-		msgContent := strings.TrimSpace(msgParts[1])
-
-		newMessages = append(newMessages, openrouter.Message{
-			Role:    role,
-			Content: msgContent,
-		})
+	} else {
+		// Legacy format: <!-- role: X --> ... sections with text content only.
+		for _, sec := range strings.Split(content, "<!-- role: ") {
+			if !strings.Contains(sec, " -->") {
+				continue
+			}
+			parts := strings.SplitN(sec, " -->", 2)
+			role := strings.TrimSpace(parts[0])
+			body := parts[1]
+			msgParts := strings.SplitN(body, "\n\n", 2)
+			if len(msgParts) < 2 {
+				continue
+			}
+			newMessages = append(newMessages, openrouter.Message{
+				Role:    role,
+				Content: strings.TrimSpace(msgParts[1]),
+			})
+		}
 	}
 
 	s.messages = newMessages
