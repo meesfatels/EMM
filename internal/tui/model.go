@@ -39,7 +39,7 @@ func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *agent.Runt
 	ta.Focus()
 	ta.CharLimit = 0
 	ta.ShowLineNumbers = false
-	ta.SetHeight(cfg.Layout.InputHeight)
+	ta.SetHeight(1)
 	ta.KeyMap.InsertNewline.SetEnabled(false)
 	plain := lipgloss.NewStyle()
 	ta.FocusedStyle.Base = plain

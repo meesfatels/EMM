@@ -25,9 +25,8 @@ type themeColors struct {
 }
 
 type layoutConfig struct {
-	InputHeight int  `yaml:"input_height"`
-	ShowHeader  bool `yaml:"show_header"`
-	ShowStatus  bool `yaml:"show_status"`
+	ShowHeader bool `yaml:"show_header"`
+	ShowStatus bool `yaml:"show_status"`
 }
 
 type inputConfig struct {
@@ -52,9 +51,8 @@ func defaultTheme() themeConfig {
 			HeaderFg:  "#8B5CF6",
 		},
 		Layout: layoutConfig{
-			InputHeight: 1,
-			ShowHeader:  false,
-			ShowStatus:  true,
+			ShowHeader: false,
+			ShowStatus: true,
 		},
 		Input: inputConfig{
 			Placeholder: "message  (/help)",
