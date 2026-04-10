@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -17,13 +16,11 @@ type Config struct {
 	DefaultMinion string `yaml:"default_minion"`
 }
 
-func LoadConfig(dir string) (Config, error) {
+func LoadConfig(dir string) Config {
 	var c Config
-	if err := readYAML(filepath.Join(dir, "emm.yaml"), &c); err != nil {
-		return Config{}, fmt.Errorf("loading config: %w", err)
-	}
+	readYAML(filepath.Join(dir, "emm.yaml"), &c)
 	if c.APIKey == "" {
-		return Config{}, fmt.Errorf("api_key not set in emm.yaml")
+		panic("api_key not set in emm.yaml")
 	}
 	if c.BaseURL == "" {
 		c.BaseURL = defaultBaseURL
@@ -37,46 +34,43 @@ func LoadConfig(dir string) (Config, error) {
 	if c.DefaultMinion == "" {
 		c.DefaultMinion = "example"
 	}
-	return c, nil
+	return c
 }
 
-// Dir returns the path to the user's EMM config directory (~/.emm).
-func Dir() (string, error) {
+func Dir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("home directory: %w", err)
+		panic("home directory: " + err.Error())
 	}
-	return filepath.Join(home, ".emm"), nil
+	return filepath.Join(home, ".emm")
 }
 
-// Init copies the embedded template into the EMM config directory.
-// If force is true, it overwrites existing files.
-func Init(templateFS fs.FS, force bool) error {
-	dir, err := Dir()
-	if err != nil {
-		return err
-	}
-	return fs.WalkDir(templateFS, ".EMM", func(path string, d fs.DirEntry, err error) error {
+func Init(templateFS fs.FS, force bool) {
+	dir := Dir()
+	fs.WalkDir(templateFS, ".EMM", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("walking template: %w", err)
+			panic(err)
 		}
-		rel, err := filepath.Rel(".EMM", path)
-		if err != nil {
-			return fmt.Errorf("resolving path %s: %w", path, err)
-		}
+		rel, _ := filepath.Rel(".EMM", path)
 		target := filepath.Join(dir, rel)
 		if d.IsDir() {
-			return os.MkdirAll(target, 0o755)
+			if err := os.MkdirAll(target, 0o755); err != nil {
+				panic(err)
+			}
+			return nil
 		}
 		if !force {
-			if _, err := os.Stat(target); err == nil {
-				return nil // already exists, skip
+			if fileExists(target) {
+				return nil
 			}
 		}
 		data, err := fs.ReadFile(templateFS, path)
 		if err != nil {
-			return fmt.Errorf("reading template %s: %w", rel, err)
+			panic(err)
 		}
-		return os.WriteFile(target, data, 0o644)
+		if err := os.WriteFile(target, data, 0o644); err != nil {
+			panic(err)
+		}
+		return nil
 	})
 }

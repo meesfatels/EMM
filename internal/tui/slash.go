@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
+func (m model) handleSlash(input string) (tea.Model, tea.Cmd) {
 	parts := strings.Fields(input)
 	if len(parts) == 0 {
 		return m, nil
@@ -25,110 +25,103 @@ func (m chatModel) handleSlash(input string) (tea.Model, tea.Cmd) {
 		for name := range m.rt.Minions {
 			minions = append(minions, name)
 		}
-		m.messages = append(m.messages, message{
-			role: "system",
-			content: fmt.Sprintf(
-				"/agent <name>   — switch agent\n"+
-					"/minion <name>  — switch minion\n"+
-					"/save <name>    — save conversation to .emm/conversations/<name>.md\n"+
-					"/load <name>    — load conversation from .emm/conversations/<name>.md\n"+
-					"/destroy <name> — delete a saved conversation\n"+
-					"/help           — show this help\n\n"+
-					"agents:  %s\n"+
-					"minions: %s",
-				strings.Join(agents, ", "),
-				strings.Join(minions, ", ")),
-		})
+		m = m.sys(
+			"/agent <name>   — switch agent\n" +
+				"/minion <name>  — switch minion\n" +
+				"/save <name>    — save conversation to .emm/conversations/<name>.md\n" +
+				"/load <name>    — load conversation from .emm/conversations/<name>.md\n" +
+				"/destroy <name> — delete a saved conversation\n" +
+				"/help           — show this help\n\n" +
+				"agents:  " + strings.Join(agents, ", ") + "\n" +
+				"minions: " + strings.Join(minions, ", "),
+		)
 
 	case "/agent":
 		if len(parts) < 2 {
-			m.messages = append(m.messages, message{role: "system", content: "usage: /agent <name>"})
+			m = m.sys("usage: /agent <name>")
 			break
 		}
 		name := parts[1]
 		a, ok := m.rt.Agents[name]
 		if !ok {
-			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("unknown agent %q", name)})
+			m = m.sys(fmt.Sprintf("unknown agent %q", name))
 			break
 		}
 		m.agentName = name
 		m.session.SwitchAgent(a)
-		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("switched to agent %q", name)})
 		m.historyCache = ""
+		m = m.sys(fmt.Sprintf("switched to agent %q", name))
 
 	case "/minion":
 		if len(parts) < 2 {
-			m.messages = append(m.messages, message{role: "system", content: "usage: /minion <name>"})
+			m = m.sys("usage: /minion <name>")
 			break
 		}
 		name := parts[1]
-		minion, ok := m.rt.Minions[name]
+		mn, ok := m.rt.Minions[name]
 		if !ok {
-			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("unknown minion %q", name)})
+			m = m.sys(fmt.Sprintf("unknown minion %q", name))
 			break
 		}
 		m.minionName = name
-		m.session.SwitchMinion(minion, name)
-		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("switched to minion %q", name)})
+		m.session.SwitchMinion(mn, name)
 		m.historyCache = ""
+		m = m.sys(fmt.Sprintf("switched to minion %q", name))
 
 	case "/save":
 		if len(parts) < 2 {
-			m.messages = append(m.messages, message{role: "system", content: "usage: /save <name>"})
+			m = m.sys("usage: /save <name>")
 			break
 		}
 		name := parts[1]
-		if err := m.session.Save(m.rt.Dir, name); err != nil {
-			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("error: %v", err)})
-			break
-		}
-		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("saved as %q", name)})
+		m.session.Save(m.rt.Dir, name)
+		m = m.sys(fmt.Sprintf("saved as %q", name))
 
 	case "/load":
 		if len(parts) < 2 {
-			m.messages = append(m.messages, message{role: "system", content: "usage: /load <name>"})
+			m = m.sys("usage: /load <name>")
 			break
 		}
 		name := parts[1]
-		if err := m.session.Load(m.rt.Dir, name); err != nil {
-			m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("error: %v", err)})
+		if !m.session.Load(m.rt.Dir, name) {
+			m = m.sys(fmt.Sprintf("no conversation named %q", name))
 			break
 		}
 		m.messages = nil
 		m.historyCache = ""
 		for _, msg := range m.session.Messages() {
-			// Skip system prompt, tool results, and tool-call-only assistant
-			// messages — they lack the display context the TUI renderer expects.
-			if msg.Role == "system" || msg.Role == "tool" {
-				continue
-			}
-			if msg.Content == "" {
+			if msg.Role == "system" || msg.Role == "tool" || msg.Content == "" {
 				continue
 			}
 			m.messages = append(m.messages, message{role: msg.Role, content: msg.Content})
 		}
-		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("loaded %q", name)})
+		m = m.sys(fmt.Sprintf("loaded %q", name))
 
 	case "/destroy":
 		if len(parts) < 2 {
-			m.messages = append(m.messages, message{role: "system", content: "usage: /destroy <name>"})
+			m = m.sys("usage: /destroy <name>")
 			break
 		}
 		name := parts[1]
 		path := filepath.Join(m.rt.Dir, "conversations", name+".md")
 		if err := os.Remove(path); err != nil {
 			if os.IsNotExist(err) {
-				m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("no conversation named %q", name)})
+				m = m.sys(fmt.Sprintf("no conversation named %q", name))
 			} else {
-				m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("error: %v", err)})
+				m = m.sys(fmt.Sprintf("error: %v", err))
 			}
 			break
 		}
-		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("destroyed %q", name)})
+		m = m.sys(fmt.Sprintf("destroyed %q", name))
 
 	default:
-		m.messages = append(m.messages, message{role: "system", content: fmt.Sprintf("unknown command %q — try /help", parts[0])})
+		m = m.sys(fmt.Sprintf("unknown command %q — try /help", parts[0]))
 	}
 
 	return m.refreshContent(), nil
+}
+
+func (m model) sys(text string) model {
+	m.messages = append(m.messages, message{role: "system", content: text})
+	return m
 }

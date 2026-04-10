@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"fmt"
-
 	"github.com/meesfatels/emm/internal/minion"
 	"github.com/meesfatels/emm/internal/openrouter"
 )
@@ -15,24 +13,13 @@ type Runtime struct {
 	Client  *openrouter.Client
 }
 
-func NewRuntime(dir string) (*Runtime, error) {
-	cfg, err := LoadConfig(dir)
-	if err != nil {
-		return nil, fmt.Errorf("loading config: %w", err)
-	}
-	minions, err := minion.Load(dir)
-	if err != nil {
-		return nil, fmt.Errorf("loading minions: %w", err)
-	}
-	agents, err := LoadAll(dir)
-	if err != nil {
-		return nil, fmt.Errorf("loading agents: %w", err)
-	}
+func NewRuntime(dir string) *Runtime {
+	cfg := LoadConfig(dir)
 	return &Runtime{
 		Dir:     dir,
 		Config:  cfg,
-		Minions: minions,
-		Agents:  agents,
+		Minions: minion.Load(dir),
+		Agents:  LoadAll(dir),
 		Client:  openrouter.NewClient(cfg.APIKey, cfg.BaseURL),
-	}, nil
+	}
 }

@@ -41,15 +41,7 @@ type Request struct {
 	Tools    []Tool
 }
 
-func NewRequest(minion map[string]any, messages []Message, tools []Tool) *Request {
-	return &Request{
-		Minion:   minion,
-		Messages: messages,
-		Tools:    tools,
-	}
-}
-
-func (r *Request) encode() (io.Reader, error) {
+func (r *Request) encode() io.Reader {
 	payload := make(map[string]any, len(r.Minion)+3)
 	for k, v := range r.Minion {
 		payload[k] = v
@@ -61,7 +53,7 @@ func (r *Request) encode() (io.Reader, error) {
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return bytes.NewReader(data), nil
+	return bytes.NewReader(data)
 }

@@ -1,10 +1,8 @@
 package tui
 
-import (
-	"strings"
-)
+import "strings"
 
-func (m chatModel) contentWidth() int {
+func (m model) contentWidth() int {
 	w := m.width - 4
 	if w < 20 {
 		return 20
@@ -12,13 +10,12 @@ func (m chatModel) contentWidth() int {
 	return w
 }
 
-// refreshContent updates the viewport's content and scrolls to the bottom.
+// refreshContent re-renders all messages into the viewport.
 // All but the last message are cached to keep streaming fast in long conversations.
-func (m chatModel) refreshContent() chatModel {
+func (m model) refreshContent() model {
 	if m.width <= 0 {
 		return m
 	}
-
 	width := m.contentWidth()
 
 	if m.width != m.lastWidth {
@@ -28,8 +25,8 @@ func (m chatModel) refreshContent() chatModel {
 
 	if m.historyCache == "" && len(m.messages) > 1 {
 		var sb strings.Builder
-		for i := 0; i < len(m.messages)-1; i++ {
-			sb.WriteString(renderMessage(m.messages[i], m.agentName, m.rt.Config.Username, width))
+		for _, msg := range m.messages[:len(m.messages)-1] {
+			sb.WriteString(renderMessage(msg, m.agentName, m.rt.Config.Username, width))
 			sb.WriteString("\n")
 		}
 		m.historyCache = sb.String()
@@ -50,7 +47,7 @@ func (m chatModel) refreshContent() chatModel {
 }
 
 // finalizeLastMessage moves the last message into the history cache.
-func (m chatModel) finalizeLastMessage() chatModel {
+func (m model) finalizeLastMessage() model {
 	if len(m.messages) > 0 {
 		m.historyCache += renderMessage(m.messages[len(m.messages)-1], m.agentName, m.rt.Config.Username, m.contentWidth())
 		m.historyCache += "\n"
@@ -71,8 +68,7 @@ func renderMessage(msg message, agentName, userName string, width int) string {
 		if len(lines) > 1 {
 			output = lines[1]
 		}
-		rendered := st.toolHeader.Render("🔧 "+header) + "\n" + st.toolBody.Width(width).Render(output)
-		return rendered + "\n"
+		return st.toolHeader.Render("🔧 "+header) + "\n" + st.toolBody.Width(width).Render(output) + "\n"
 	case "system":
 		return st.system.Width(width).Render(msg.content) + "\n"
 	default:

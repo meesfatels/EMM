@@ -1,7 +1,6 @@
 package minion
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,11 +13,11 @@ import (
 // the minion YAML without any code changes.
 type Minion map[string]any
 
-func Load(dir string) (map[string]Minion, error) {
+func Load(dir string) map[string]Minion {
 	minionsDir := filepath.Join(dir, "minions")
 	entries, err := os.ReadDir(minionsDir)
 	if err != nil {
-		return nil, fmt.Errorf("reading minions directory: %w", err)
+		panic("reading minions directory: " + err.Error())
 	}
 	result := make(map[string]Minion)
 	for _, e := range entries {
@@ -27,14 +26,13 @@ func Load(dir string) (map[string]Minion, error) {
 		}
 		data, err := os.ReadFile(filepath.Join(minionsDir, e.Name()))
 		if err != nil {
-			return nil, fmt.Errorf("reading %s: %w", e.Name(), err)
+			panic(err)
 		}
 		var m Minion
 		if err := yaml.Unmarshal(data, &m); err != nil {
-			return nil, fmt.Errorf("parsing %s: %w", e.Name(), err)
+			panic(err)
 		}
-		name := strings.TrimSuffix(e.Name(), ".yaml")
-		result[name] = m
+		result[strings.TrimSuffix(e.Name(), ".yaml")] = m
 	}
-	return result, nil
+	return result
 }

@@ -1,0 +1,5 @@
+shell:
+  - binary: git
+    deny: ["push", "reset --hard", "clean -f"]
+  - binary: ls
+  - binary: cat

@@ -1,18 +1,17 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func (m chatModel) Init() tea.Cmd {
+func (m model) Init() tea.Cmd {
 	return textarea.Blink
 }
 
-func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -54,16 +53,14 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.textarea.Reset()
 			if strings.HasPrefix(input, "/") {
 				nm, cmd := m.handleSlash(input)
-				m = nm.(chatModel)
+				m = nm.(model)
 				return m, cmd
 			}
-
 			m.messages = append(m.messages, message{role: "user", content: input})
 			m = m.finalizeLastMessage()
-
 			m.messages = append(m.messages, message{role: "assistant", content: ""})
 			m.streaming = true
-			m.eventCh = make(chan sessionEvent, 256)
+			m.eventCh = make(chan any, 256)
 			m.autoScroll = true
 			m = m.refreshContent()
 			return m, tea.Batch(m.sendMessage(input), m.waitForEvent())
@@ -77,7 +74,6 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.waitForEvent()
 
 	case toolEvent:
-		// Finalize or remove the current assistant bubble.
 		if len(m.messages) > 0 && m.messages[len(m.messages)-1].role == "assistant" {
 			last := &m.messages[len(m.messages)-1]
 			if last.content != "" {
@@ -86,7 +82,6 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.messages = m.messages[:len(m.messages)-1]
 			}
 		}
-		// Add the tool execution record and open a new assistant bubble.
 		m.messages = append(m.messages, message{role: "tool", content: msg.name + " " + msg.input + "\n" + msg.output})
 		m = m.finalizeLastMessage()
 		m.messages = append(m.messages, message{role: "assistant", content: ""})
@@ -95,34 +90,28 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case doneMsg:
 		m.streaming = false
-		if msg.err != nil && len(m.messages) > 0 {
-			m.messages[len(m.messages)-1].content += fmt.Sprintf("\n[error: %v]", msg.err)
-		}
 		m = m.refreshContent()
 		m = m.finalizeLastMessage()
 		return m, nil
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+		m.height = msg.Height
 		m.ready = true
-
-		fixed := 1 + 2 + 1 // input (1 line) + box borders (2) + meta label
-		if cfg.Layout.ShowHeader {
-			fixed++
-		}
-		if cfg.Layout.ShowStatus {
-			fixed++
-		}
-		m.viewport.Height = msg.Height - fixed
 		m.viewport.Width = msg.Width
 		m.textarea.SetWidth(msg.Width - 4)
+		m = m.applyLayout()
 		return m.refreshContent(), nil
 	}
 
 	var cmd tea.Cmd
 	if !m.streaming {
+		prevLines := m.inputLines()
 		m.textarea, cmd = m.textarea.Update(msg)
 		cmds = append(cmds, cmd)
+		if m.inputLines() != prevLines {
+			m = m.applyLayout()
+		}
 	}
 
 	m.viewport, cmd = m.viewport.Update(msg)

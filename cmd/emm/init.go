@@ -12,8 +12,8 @@ func newInitCmd(templateFS fs.FS) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize EMM configuration in ~/.emm/",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return agent.Init(templateFS, force)
+		Run: func(cmd *cobra.Command, args []string) {
+			agent.Init(templateFS, force)
 		},
 	}
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "force overwrite existing files")

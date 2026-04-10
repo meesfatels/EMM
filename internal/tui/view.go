@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func (m chatModel) View() string {
+func (m model) View() string {
 	if !m.ready {
 		return "\n  Initializing..."
 	}
@@ -31,7 +31,6 @@ func (m chatModel) View() string {
 		parts = append(parts, st.dim.Width(m.width).Render(" "+status))
 	}
 
-	// Metadata label sits directly above the input box.
 	meta := st.dim.Render(fmt.Sprintf(" %s  %s", m.agentName, m.minionName))
 
 	borderColor := cfg.Colors.Accent

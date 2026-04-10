@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -14,9 +13,12 @@ type InstinctFile struct {
 	Interpretation string `yaml:"interpretation"`
 }
 
-type agentYAML struct {
+type instinctGuideYAML struct {
 	Instinct []InstinctFile `yaml:"instinct"`
-	Shell    []shell.Rule   `yaml:"shell"`
+}
+
+type allowlistYAML struct {
+	Shell []shell.Rule `yaml:"shell"`
 }
 
 type Agent struct {
@@ -27,47 +29,54 @@ type Agent struct {
 	Tools    []tool.Tool
 }
 
-func Load(dir, name string) (*Agent, error) {
+func Load(dir, name string) *Agent {
 	agentDir := filepath.Join(dir, "agents", name)
-	var cfg agentYAML
-	if err := readYAML(filepath.Join(agentDir, "agent.yaml"), &cfg); err != nil {
-		return nil, fmt.Errorf("agent %s: %w", name, err)
+
+	var ig instinctGuideYAML
+	readYAML(filepath.Join(agentDir, "instinct_guide.yaml"), &ig)
+
+	var al allowlistYAML
+	if p := filepath.Join(agentDir, "allowlist.yaml"); fileExists(p) {
+		readYAML(p, &al)
 	}
-	content := make(map[string]string, len(cfg.Instinct))
-	for _, f := range cfg.Instinct {
+
+	content := make(map[string]string, len(ig.Instinct))
+	for _, f := range ig.Instinct {
 		data, err := os.ReadFile(filepath.Join(agentDir, "instinct", f.Name))
 		if err != nil {
-			return nil, fmt.Errorf("agent %s: reading instinct file %s: %w", name, f.Name, err)
+			panic("reading instinct file " + f.Name + ": " + err.Error())
 		}
 		content[f.Name] = string(data)
 	}
+
 	a := &Agent{
 		Name:     name,
-		Instinct: cfg.Instinct,
+		Instinct: ig.Instinct,
 		Content:  content,
-		Shell:    cfg.Shell,
+		Shell:    al.Shell,
 	}
-	if len(cfg.Shell) > 0 {
-		a.Tools = append(a.Tools, shell.NewExecutor(cfg.Shell))
+	if len(al.Shell) > 0 {
+		a.Tools = append(a.Tools, shell.NewExecutor(al.Shell))
 	}
-	return a, nil
+	return a
 }
 
-func LoadAll(dir string) (map[string]*Agent, error) {
+func LoadAll(dir string) map[string]*Agent {
 	entries, err := os.ReadDir(filepath.Join(dir, "agents"))
 	if err != nil {
-		return nil, fmt.Errorf("reading agents directory: %w", err)
+		panic("reading agents directory: " + err.Error())
 	}
 	agents := make(map[string]*Agent)
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue
 		}
-		a, err := Load(dir, e.Name())
-		if err != nil {
-			return nil, err
-		}
-		agents[e.Name()] = a
+		agents[e.Name()] = Load(dir, e.Name())
 	}
-	return agents, nil
+	return agents
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }

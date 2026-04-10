@@ -11,23 +11,23 @@ import (
 type Stream struct {
 	reader    io.ReadCloser
 	scanner   *bufio.Scanner
-	assembled map[int]*toolCallAssembler
+	assembled map[int]*ToolCall
 	toolCalls []ToolCall
 }
 
-func newStream(r io.ReadCloser) *Stream {
+func NewStream(r io.ReadCloser) *Stream {
 	s := &Stream{
 		reader:    r,
 		scanner:   bufio.NewScanner(r),
-		assembled: make(map[int]*toolCallAssembler),
+		assembled: make(map[int]*ToolCall),
 	}
 	s.scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	return s
 }
 
-// Recv returns the next text token. Returns io.EOF when the stream ends.
-// Tool call fragments are collected internally; call ToolCalls() after EOF.
-func (s *Stream) Recv() (string, error) {
+// Recv returns the next text token and true, or ("", false) when the stream ends.
+// Tool call fragments are collected internally; call ToolCalls() after false is returned.
+func (s *Stream) Recv() (string, bool) {
 	for s.scanner.Scan() {
 		line := s.scanner.Text()
 		if !strings.HasPrefix(line, "data: ") {
@@ -35,8 +35,8 @@ func (s *Stream) Recv() (string, error) {
 		}
 		data := strings.TrimPrefix(line, "data: ")
 		if data == "[DONE]" {
-			s.toolCalls = s.assembleToolCalls()
-			return "", io.EOF
+			s.toolCalls = s.finishToolCalls()
+			return "", false
 		}
 
 		var chunk struct {
@@ -64,50 +64,38 @@ func (s *Stream) Recv() (string, error) {
 		for _, tc := range delta.ToolCalls {
 			a, ok := s.assembled[tc.Index]
 			if !ok {
-				a = &toolCallAssembler{}
+				a = &ToolCall{}
 				s.assembled[tc.Index] = a
 			}
 			if tc.ID != "" {
-				a.id = tc.ID
+				a.ID = tc.ID
 			}
 			if tc.Type != "" {
-				a.typ = tc.Type
+				a.Type = tc.Type
 			}
 			if tc.Function.Name != "" {
-				a.name = tc.Function.Name
+				a.Function.Name = tc.Function.Name
 			}
-			a.args += tc.Function.Arguments
+			a.Function.Arguments += tc.Function.Arguments
 		}
 
 		if delta.Content != "" {
-			return delta.Content, nil
+			return delta.Content, true
 		}
 	}
-	if err := s.scanner.Err(); err != nil {
-		return "", err
-	}
-	s.toolCalls = s.assembleToolCalls()
-	return "", io.EOF
+	s.toolCalls = s.finishToolCalls()
+	return "", false
 }
 
-// ToolCalls returns the tool calls collected during streaming.
-// Only valid after Recv returns io.EOF.
 func (s *Stream) ToolCalls() []ToolCall {
 	return s.toolCalls
 }
 
-func (s *Stream) Close() error {
-	return s.reader.Close()
+func (s *Stream) Close() {
+	s.reader.Close()
 }
 
-type toolCallAssembler struct {
-	id   string
-	typ  string
-	name string
-	args string
-}
-
-func (s *Stream) assembleToolCalls() []ToolCall {
+func (s *Stream) finishToolCalls() []ToolCall {
 	if len(s.assembled) == 0 {
 		return nil
 	}
@@ -118,15 +106,7 @@ func (s *Stream) assembleToolCalls() []ToolCall {
 	slices.Sort(keys)
 	result := make([]ToolCall, 0, len(keys))
 	for _, k := range keys {
-		a := s.assembled[k]
-		result = append(result, ToolCall{
-			ID:   a.id,
-			Type: a.typ,
-			Function: ToolFunction{
-				Name:      a.name,
-				Arguments: a.args,
-			},
-		})
+		result = append(result, *s.assembled[k])
 	}
 	return result
 }

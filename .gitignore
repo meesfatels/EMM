@@ -7,3 +7,4 @@
 /packaging/aur/emm-git/
 /packaging/aur/gopath/
 *.log
+/release.sh

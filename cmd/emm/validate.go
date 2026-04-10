@@ -11,16 +11,9 @@ func newValidateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "validate",
 		Short: "Validate EMM configuration",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			dir, err := agent.Dir()
-			if err != nil {
-				return err
-			}
-			if _, err = agent.NewRuntime(dir); err != nil {
-				return fmt.Errorf("validation failed: %w", err)
-			}
+		Run: func(cmd *cobra.Command, args []string) {
+			agent.NewRuntime(agent.Dir())
 			fmt.Println("Configuration valid.")
-			return nil
 		},
 	}
 }

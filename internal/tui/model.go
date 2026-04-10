@@ -14,7 +14,7 @@ type message struct {
 	content string
 }
 
-type chatModel struct {
+type model struct {
 	viewport     viewport.Model
 	textarea     textarea.Model
 	messages     []message
@@ -25,15 +25,16 @@ type chatModel struct {
 	agentName    string
 	minionName   string
 	streaming    bool
-	eventCh      chan sessionEvent
+	eventCh      chan any
 	width        int
+	height       int
 	ready        bool
 	historyCache string
 	lastWidth    int
 	autoScroll   bool
 }
 
-func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *agent.Runtime, session *agent.Session, agentName, minionName string) chatModel {
+func newModel(ctx context.Context, cancel context.CancelFunc, rt *agent.Runtime, session *agent.Session, agentName, minionName string) model {
 	ta := textarea.New()
 	ta.Placeholder = cfg.Input.Placeholder
 	ta.Focus()
@@ -56,7 +57,7 @@ func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *agent.Runt
 	vp.KeyMap.Up.SetEnabled(false)
 	vp.KeyMap.Down.SetEnabled(false)
 
-	return chatModel{
+	return model{
 		viewport:   vp,
 		textarea:   ta,
 		session:    session,
@@ -67,4 +68,37 @@ func newChatModel(ctx context.Context, cancel context.CancelFunc, rt *agent.Runt
 		minionName: minionName,
 		autoScroll: true,
 	}
+}
+
+// inputLines returns the number of visual rows the textarea content occupies,
+// capped at 6.
+func (m model) inputLines() int {
+	w := m.width - 4 // matches textarea.SetWidth argument
+	if w < 1 {
+		return 1
+	}
+	lines := len([]rune(m.textarea.Value()))/w + 1
+	if lines > 6 {
+		lines = 6
+	}
+	return lines
+}
+
+// applyLayout resizes the textarea and viewport to match the current input size.
+func (m model) applyLayout() model {
+	lines := m.inputLines()
+	m.textarea.SetHeight(lines)
+	fixed := lines + 2 + 1 // textarea rows + border (top+bottom) + meta label
+	if cfg.Layout.ShowHeader {
+		fixed++
+	}
+	if cfg.Layout.ShowStatus {
+		fixed++
+	}
+	vph := m.height - fixed
+	if vph < 1 {
+		vph = 1
+	}
+	m.viewport.Height = vph
+	return m
 }

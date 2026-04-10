@@ -1,20 +1,18 @@
 package agent
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
 
-func readYAML(path string, out any) error {
+func readYAML(path string, out any) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("reading %s: %w", filepath.Base(path), err)
+		panic("reading " + filepath.Base(path) + ": " + err.Error())
 	}
 	if err := yaml.Unmarshal(data, out); err != nil {
-		return fmt.Errorf("parsing %s: %w", filepath.Base(path), err)
+		panic("parsing " + filepath.Base(path) + ": " + err.Error())
 	}
-	return nil
 }

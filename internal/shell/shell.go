@@ -45,23 +45,35 @@ func (e *Executor) Definition() openrouter.Tool {
 	}
 }
 
-func (e *Executor) Execute(ctx context.Context, args string) (string, error) {
+func (e *Executor) Execute(ctx context.Context, args string) string {
 	var a struct {
 		Cmd string `json:"cmd"`
 	}
 	if err := json.Unmarshal([]byte(args), &a); err != nil {
-		return "", fmt.Errorf("parsing tool arguments: %w", err)
+		return fmt.Sprintf("error: parsing tool arguments: %v", err)
 	}
 	return e.Run(ctx, a.Cmd)
 }
 
-// Allowed reports whether cmd is permitted by the allowlist.
-func (e *Executor) Allowed(cmd string) bool {
-	if len(e.rules) == 0 {
-		return false
-	}
+// Run executes cmd if allowed by the allowlist, returning combined stdout+stderr.
+func (e *Executor) Run(ctx context.Context, cmd string) string {
 	parts, err := shlex.Split(cmd)
-	if err != nil || len(parts) == 0 {
+	if err != nil {
+		return fmt.Sprintf("error: parsing command: %v", err)
+	}
+	if !e.allowed(parts) {
+		return fmt.Sprintf("error: command not allowed: %s", cmd)
+	}
+	c := exec.CommandContext(ctx, parts[0], parts[1:]...)
+	var out bytes.Buffer
+	c.Stdout = &out
+	c.Stderr = &out
+	c.Run()
+	return out.String()
+}
+
+func (e *Executor) allowed(parts []string) bool {
+	if len(e.rules) == 0 || len(parts) == 0 {
 		return false
 	}
 	binary := parts[0]
@@ -78,22 +90,4 @@ func (e *Executor) Allowed(cmd string) bool {
 		return true
 	}
 	return false
-}
-
-// Run executes cmd if allowed, returning combined stdout+stderr.
-// A non-zero exit code is returned as an error alongside any output.
-func (e *Executor) Run(ctx context.Context, cmd string) (string, error) {
-	if !e.Allowed(cmd) {
-		return "", fmt.Errorf("command not allowed: %s", cmd)
-	}
-	parts, err := shlex.Split(cmd)
-	if err != nil {
-		return "", fmt.Errorf("parsing command: %w", err)
-	}
-	c := exec.CommandContext(ctx, parts[0], parts[1:]...)
-	var out bytes.Buffer
-	c.Stdout = &out
-	c.Stderr = &out
-	err = c.Run()
-	return out.String(), err
 }

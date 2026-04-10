@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -60,19 +58,16 @@ func defaultTheme() themeConfig {
 	}
 }
 
-func loadTheme(emmDir string) (themeConfig, error) {
+func loadTheme(emmDir string) themeConfig {
 	cfg := defaultTheme()
 	data, err := os.ReadFile(filepath.Join(emmDir, "tui", "theme.yaml"))
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return cfg, nil
-		}
-		return cfg, err
+		return cfg
 	}
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return cfg, fmt.Errorf("parsing theme.yaml: %w", err)
+		panic("parsing theme.yaml: " + err.Error())
 	}
-	return cfg, nil
+	return cfg
 }
 
 type styles struct {
